@@ -30,9 +30,9 @@ public class InMemoryTokenStorage : ITokenStorage
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
-        
+
         ArgumentNullException.ThrowIfNull(token);
-        
+
         cancellationToken.ThrowIfCancellationRequested();
 
         _tokens.AddOrUpdate(key, token, (_, _) => token);

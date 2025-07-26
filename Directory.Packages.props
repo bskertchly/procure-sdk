@@ -52,6 +52,20 @@
     <!-- Code analysis -->
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
+    <PackageVersion Include="SecurityCodeScan.VS2019" Version="5.6.7" />
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="9.32.0.97167" />
+    <PackageVersion Include="StyleCop.Analyzers" Version="1.1.118" />
+    
+    <!-- Code coverage -->
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="17.12.4" />
+    <PackageVersion Include="coverlet.msbuild" Version="6.0.2" />
+    <PackageVersion Include="ReportGenerator" Version="5.3.11" />
+    
+    <!-- Performance benchmarking -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
+    
+    <!-- Security and vulnerability scanning -->
+    <PackageVersion Include="NuGetDefense" Version="2.2.0" />
     
     <!-- Source linking -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />

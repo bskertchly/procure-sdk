@@ -31,7 +31,7 @@ public class ProcoreAuthHandler : DelegatingHandler
 
     /// <inheritdoc />
     protected override async Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request, 
+        HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
         // Add authorization header if not already present
@@ -43,23 +43,23 @@ public class ProcoreAuthHandler : DelegatingHandler
         if (response.StatusCode == HttpStatusCode.Unauthorized && !HasBeenRetried(request))
         {
             _logger.LogDebug("Received 401 Unauthorized, attempting to refresh token and retry");
-            
+
             await _refreshSemaphore.WaitAsync(cancellationToken);
             try
             {
                 var newToken = await _tokenManager.RefreshTokenAsync(cancellationToken);
-                
+
                 // Clone the request and add new token
                 var retryRequest = await CloneRequestAsync(request, cancellationToken);
                 retryRequest.Headers.Authorization = new AuthenticationHeaderValue(
                     newToken.TokenType, newToken.Token);
-                
+
                 // Mark this request as a retry to prevent infinite loops
                 MarkAsRetried(retryRequest);
 
                 response.Dispose();
                 response = await base.SendAsync(retryRequest, cancellationToken);
-                
+
                 _logger.LogDebug("Token refresh and retry completed with status: {StatusCode}", response.StatusCode);
             }
             catch (Exception ex)
@@ -80,7 +80,7 @@ public class ProcoreAuthHandler : DelegatingHandler
     /// Adds the authorization header to the request if not already present
     /// </summary>
     private async Task AddAuthorizationHeaderAsync(
-        HttpRequestMessage request, 
+        HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
         if (request.Headers.Authorization != null)
@@ -106,7 +106,7 @@ public class ProcoreAuthHandler : DelegatingHandler
     /// Clones an HTTP request message for retry scenarios
     /// </summary>
     private static async Task<HttpRequestMessage> CloneRequestAsync(
-        HttpRequestMessage request, 
+        HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
         var clone = new HttpRequestMessage(request.Method, request.RequestUri)
@@ -139,11 +139,16 @@ public class ProcoreAuthHandler : DelegatingHandler
     }
 
     /// <summary>
+    /// Option key for tracking request retry status
+    /// </summary>
+    private static readonly HttpRequestOptionsKey<bool> RetriedOptionKey = new("ProcoreAuthHandler.Retried");
+
+    /// <summary>
     /// Checks if a request has already been retried to prevent infinite retry loops
     /// </summary>
     private static bool HasBeenRetried(HttpRequestMessage request)
     {
-        return request.Properties.ContainsKey("ProcoreAuthHandler.Retried");
+        return request.Options.TryGetValue(RetriedOptionKey, out var retried) && retried;
     }
 
     /// <summary>
@@ -151,7 +156,7 @@ public class ProcoreAuthHandler : DelegatingHandler
     /// </summary>
     private static void MarkAsRetried(HttpRequestMessage request)
     {
-        request.Properties["ProcoreAuthHandler.Retried"] = true;
+        request.Options.Set(RetriedOptionKey, true);
     }
 
     /// <inheritdoc />

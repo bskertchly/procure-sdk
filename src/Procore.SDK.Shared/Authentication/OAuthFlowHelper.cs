@@ -40,7 +40,7 @@ public class OAuthFlowHelper
     {
         var codeVerifier = GenerateCodeVerifier();
         var codeChallenge = GenerateCodeChallenge(codeVerifier);
-        
+
         var queryParams = new Dictionary<string, string>
         {
             ["response_type"] = "code",
@@ -54,11 +54,11 @@ public class OAuthFlowHelper
         if (!string.IsNullOrEmpty(state))
             queryParams["state"] = state;
 
-        var query = string.Join("&", queryParams.Select(kvp => 
+        var query = string.Join("&", queryParams.Select(kvp =>
             $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
 
         var authorizeUrl = $"{_options.AuthorizationEndpoint}?{query}";
-        
+
         return (authorizeUrl, codeVerifier);
     }
 
@@ -72,8 +72,8 @@ public class OAuthFlowHelper
     /// <exception cref="HttpRequestException">Thrown when the HTTP request fails</exception>
     /// <exception cref="JsonException">Thrown when the response cannot be parsed</exception>
     public async Task<AccessToken> ExchangeCodeForTokenAsync(
-        string code, 
-        string codeVerifier, 
+        string code,
+        string codeVerifier,
         CancellationToken cancellationToken = default)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, _options.TokenEndpoint)

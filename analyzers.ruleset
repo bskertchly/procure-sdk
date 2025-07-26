@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Procore SDK Analyzer Rules" Description="Comprehensive analysis rules for Procore SDK" ToolsVersion="17.0">
+  <!-- Default rule severity -->
+  <Rules AnalyzerId="Microsoft.CodeAnalysis.CSharp" RuleNamespace="Microsoft.CodeAnalysis.CSharp">
+    <!-- Enable all rules by default -->
+    <Rule Id="*" Action="Warning" />
+  </Rules>
+
+  <!-- Microsoft .NET Code Analysis Rules -->
+  <Rules AnalyzerId="Microsoft.CodeAnalysis.NetAnalyzers" RuleNamespace="Microsoft.CodeAnalysis.NetAnalyzers">
+    <!-- Performance rules -->
+    <Rule Id="CA1806" Action="Warning" /> <!-- Do not ignore method results -->
+    <Rule Id="CA1810" Action="Warning" /> <!-- Initialize reference type static fields inline -->
+    <Rule Id="CA1812" Action="Info" />    <!-- Avoid uninstantiated internal classes -->
+    <Rule Id="CA1813" Action="Warning" /> <!-- Avoid unsealed attributes -->
+    <Rule Id="CA1816" Action="Warning" /> <!-- Call GC.SuppressFinalize correctly -->
+    <Rule Id="CA1820" Action="Warning" /> <!-- Test for empty strings using string length -->
+    <Rule Id="CA1821" Action="Warning" /> <!-- Remove empty finalizers -->
+    <Rule Id="CA1822" Action="Info" />    <!-- Mark members as static -->
+    <Rule Id="CA1823" Action="Warning" /> <!-- Avoid unused private fields -->
+    <Rule Id="CA1824" Action="Warning" /> <!-- Mark assemblies with NeutralResourcesLanguageAttribute -->
+    <Rule Id="CA1825" Action="Warning" /> <!-- Avoid zero-length array allocations -->
+
+    <!-- Security rules -->
+    <Rule Id="CA2100" Action="Warning" /> <!-- Review SQL queries for security vulnerabilities -->
+    <Rule Id="CA2101" Action="Warning" /> <!-- Specify marshaling for P/Invoke string arguments -->
+    <Rule Id="CA2109" Action="Warning" /> <!-- Review visible event handlers -->
+    <Rule Id="CA2119" Action="Warning" /> <!-- Seal methods that satisfy private interfaces -->
+    <Rule Id="CA2153" Action="Warning" /> <!-- Avoid handling Corrupted State Exceptions -->
+    <Rule Id="CA2300" Action="Warning" /> <!-- Do not use insecure deserializer BinaryFormatter -->
+    <Rule Id="CA2301" Action="Warning" /> <!-- Do not call BinaryFormatter.Deserialize without first setting BinaryFormatter.Binder -->
+    <Rule Id="CA2302" Action="Warning" /> <!-- Ensure BinaryFormatter.Binder is set before calling BinaryFormatter.Deserialize -->
+    <Rule Id="CA2305" Action="Warning" /> <!-- Do not use insecure deserializer LosFormatter -->
+    <Rule Id="CA2310" Action="Warning" /> <!-- Do not use insecure deserializer NetDataContractSerializer -->
+    <Rule Id="CA2311" Action="Warning" /> <!-- Do not deserialize without first setting NetDataContractSerializer.Binder -->
+    <Rule Id="CA2312" Action="Warning" /> <!-- Ensure NetDataContractSerializer.Binder is set before deserializing -->
+    <Rule Id="CA2315" Action="Warning" /> <!-- Do not use insecure deserializer ObjectStateFormatter -->
+    <Rule Id="CA2321" Action="Warning" /> <!-- Do not deserialize with JavaScriptSerializer using a SimpleTypeResolver -->
+    <Rule Id="CA2322" Action="Warning" /> <!-- Ensure JavaScriptSerializer is not initialized with SimpleTypeResolver before deserializing -->
+    <Rule Id="CA2326" Action="Warning" /> <!-- Do not use TypeNameHandling values other than None -->
+    <Rule Id="CA2327" Action="Warning" /> <!-- Do not use insecure JsonSerializerSettings -->
+    <Rule Id="CA2328" Action="Warning" /> <!-- Ensure that JsonSerializerSettings are secure -->
+    <Rule Id="CA2329" Action="Warning" /> <!-- Do not deserialize with JsonSerializer using an insecure configuration -->
+    <Rule Id="CA2330" Action="Warning" /> <!-- Ensure that JsonSerializer has a secure configuration when deserializing -->
+
+    <!-- Reliability rules -->
+    <Rule Id="CA2000" Action="Warning" /> <!-- Dispose objects before losing scope -->
+    <Rule Id="CA2001" Action="Warning" /> <!-- Avoid calling problematic methods -->
+    <Rule Id="CA2002" Action="Warning" /> <!-- Do not lock on objects with weak identity -->
+    <Rule Id="CA2007" Action="Info" />    <!-- Do not directly await a Task -->
+    <Rule Id="CA2008" Action="Warning" /> <!-- Do not create tasks without passing a TaskScheduler -->
+    <Rule Id="CA2009" Action="Warning" /> <!-- Do not call ToImmutableCollection on an ImmutableCollection value -->
+    <Rule Id="CA2011" Action="Warning" /> <!-- Do not assign property within its setter -->
+    <Rule Id="CA2012" Action="Warning" /> <!-- Use ValueTasks correctly -->
+    <Rule Id="CA2013" Action="Warning" /> <!-- Do not use ReferenceEquals with value types -->
+    <Rule Id="CA2014" Action="Warning" /> <!-- Do not use stackalloc in loops -->
+    <Rule Id="CA2015" Action="Warning" /> <!-- Do not define finalizers for types derived from MemoryManager<T> -->
+    <Rule Id="CA2016" Action="Warning" /> <!-- Forward the CancellationToken parameter to methods that take one -->
+    <Rule Id="CA2018" Action="Warning" /> <!-- The count argument to Buffer.BlockCopy should specify the number of bytes to copy -->
+  </Rules>
+
+  <!-- Security Code Scan Rules -->
+  <Rules AnalyzerId="SecurityCodeScan.VS2019" RuleNamespace="SecurityCodeScan.VS2019">
+    <Rule Id="SCS0001" Action="Warning" /> <!-- Command injection possible -->
+    <Rule Id="SCS0002" Action="Warning" /> <!-- SQL injection -->
+    <Rule Id="SCS0003" Action="Warning" /> <!-- XPath injection -->
+    <Rule Id="SCS0004" Action="Warning" /> <!-- Certificate validation has been disabled -->
+    <Rule Id="SCS0005" Action="Warning" /> <!-- Weak random number generator -->
+    <Rule Id="SCS0006" Action="Warning" /> <!-- Weak hashing function -->
+    <Rule Id="SCS0007" Action="Warning" /> <!-- XML External Entity attack -->
+    <Rule Id="SCS0008" Action="Warning" /> <!-- Cookie without Secure flag -->
+    <Rule Id="SCS0009" Action="Warning" /> <!-- Cookie without HttpOnly flag -->
+    <Rule Id="SCS0010" Action="Warning" /> <!-- Weak cipher algorithm -->
+    <Rule Id="SCS0011" Action="Warning" /> <!-- CBC padding oracle -->
+    <Rule Id="SCS0012" Action="Warning" /> <!-- Controller method is vulnerable to CSRF -->
+    <Rule Id="SCS0013" Action="Warning" /> <!-- Potential usage of weak encryption algorithm -->
+    <Rule Id="SCS0014" Action="Warning" /> <!-- Potentially weak encryption mode -->
+    <Rule Id="SCS0015" Action="Warning" /> <!-- Hardcoded password -->
+    <Rule Id="SCS0016" Action="Warning" /> <!-- Controller method is potentially vulnerable to CSRF -->
+    <Rule Id="SCS0017" Action="Warning" /> <!-- Request validation is enabled only for pages -->
+    <Rule Id="SCS0018" Action="Warning" /> <!-- Path traversal -->
+    <Rule Id="SCS0019" Action="Warning" /> <!-- OutputCache conflict -->
+    <Rule Id="SCS0020" Action="Warning" /> <!-- SQL injection OLE DB -->
+    <Rule Id="SCS0021" Action="Warning" /> <!-- Request validation disabled -->
+    <Rule Id="SCS0022" Action="Warning" /> <!-- Event validation disabled -->
+    <Rule Id="SCS0023" Action="Warning" /> <!-- View state not encrypted -->
+    <Rule Id="SCS0024" Action="Warning" /> <!-- View state MAC disabled -->
+    <Rule Id="SCS0025" Action="Warning" /> <!-- Identity weak password complexity -->
+    <Rule Id="SCS0026" Action="Warning" /> <!-- Identity password lockout disabled -->
+    <Rule Id="SCS0027" Action="Warning" /> <!-- Identity weak password validator -->
+    <Rule Id="SCS0028" Action="Warning" /> <!-- Unsafe usage of unsafe deserialization -->
+    <Rule Id="SCS0029" Action="Warning" /> <!-- Potential XSS vulnerability -->
+    <Rule Id="SCS0030" Action="Warning" /> <!-- Request validation disabled in configuration file -->
+    <Rule Id="SCS0031" Action="Warning" /> <!-- LDAP injection -->
+    <Rule Id="SCS0032" Action="Warning" /> <!-- SQL injection Entity Framework -->
+    <Rule Id="SCS0033" Action="Warning" /> <!-- LDAP injection FilterExpression -->
+    <Rule Id="SCS0034" Action="Warning" /> <!-- SQL injection LINQ -->
+    <Rule Id="SCS0035" Action="Warning" /> <!-- SQL injection ORM -->
+    <Rule Id="SCS0036" Action="Warning" /> <!-- SQL injection stored procedure -->
+  </Rules>
+
+  <!-- SonarAnalyzer Rules -->
+  <Rules AnalyzerId="SonarAnalyzer.CSharp" RuleNamespace="SonarAnalyzer.CSharp">
+    <!-- Bug rules -->
+    <Rule Id="S1006" Action="Warning" /> <!-- Method overrides should not change contracts -->
+    <Rule Id="S1116" Action="Info" />    <!-- Empty statements should be removed -->
+    <Rule Id="S1117" Action="Warning" /> <!-- Local variables should not shadow class fields -->
+    <Rule Id="S1118" Action="Warning" /> <!-- Utility classes should not have public constructors -->
+    <Rule Id="S1125" Action="Warning" /> <!-- Boolean literals should not be redundant -->
+    <Rule Id="S1144" Action="Info" />    <!-- Unused private types or members should be removed -->
+    <Rule Id="S1172" Action="Info" />    <!-- Unused method parameters should be removed -->
+    <Rule Id="S1186" Action="Warning" /> <!-- Methods should not be empty -->
+    <Rule Id="S1481" Action="Info" />    <!-- Unused local variables should be removed -->
+    <Rule Id="S1854" Action="Info" />    <!-- Unused assignments should be removed -->
+    <Rule Id="S1862" Action="Warning" /> <!-- Related if/else if statements should not have the same condition -->
+    <Rule Id="S1871" Action="Warning" /> <!-- Two branches in a conditional structure should not have exactly the same implementation -->
+    
+    <!-- Code smell rules -->
+    <Rule Id="S101" Action="Info" />     <!-- Types should be named in PascalCase -->
+    <Rule Id="S103" Action="Info" />     <!-- Lines should not be too long -->
+    <Rule Id="S104" Action="Info" />     <!-- Files should not have too many lines -->
+    <Rule Id="S107" Action="Warning" />  <!-- Methods should not have too many parameters -->
+    <Rule Id="S108" Action="Warning" />  <!-- Nested blocks of code should not be left empty -->
+    <Rule Id="S109" Action="Info" />     <!-- Magic numbers should not be used -->
+    <Rule Id="S110" Action="Warning" />  <!-- Inheritance tree of classes should not be too deep -->
+    <Rule Id="S1134" Action="Info" />    <!-- Track uses of FIXME tags -->
+    <Rule Id="S1135" Action="Info" />    <!-- Track uses of TODO tags -->
+    <Rule Id="S1200" Action="Warning" /> <!-- Classes should not be coupled to too many other classes -->
+  </Rules>
+
+  <!-- StyleCop Analyzer Rules -->
+  <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
+    <!-- Documentation rules - relaxed for generated code -->
+    <Rule Id="SA1600" Action="Info" />    <!-- Elements should be documented -->
+    <Rule Id="SA1601" Action="Info" />    <!-- Partial elements should be documented -->
+    <Rule Id="SA1602" Action="Info" />    <!-- Enumeration items should be documented -->
+    <Rule Id="SA1633" Action="None" />    <!-- File should have header (disabled) -->
+    <Rule Id="SA1652" Action="Info" />    <!-- Enable XML documentation output -->
+    
+    <!-- Spacing rules -->
+    <Rule Id="SA1000" Action="Info" />    <!-- Keywords should be spaced correctly -->
+    <Rule Id="SA1003" Action="Info" />    <!-- Symbols should be spaced correctly -->
+    <Rule Id="SA1008" Action="Info" />    <!-- Opening parenthesis should be spaced correctly -->
+    <Rule Id="SA1009" Action="Info" />    <!-- Closing parenthesis should be spaced correctly -->
+    <Rule Id="SA1010" Action="Info" />    <!-- Opening square brackets should be spaced correctly -->
+    <Rule Id="SA1011" Action="Info" />    <!-- Closing square brackets should be spaced correctly -->
+    
+    <!-- Readability rules -->
+    <Rule Id="SA1101" Action="None" />    <!-- Prefix local calls with this (disabled) -->
+    <Rule Id="SA1124" Action="Info" />    <!-- Do not use regions -->
+    <Rule Id="SA1200" Action="None" />    <!-- Using directives should be placed correctly (disabled) -->
+    <Rule Id="SA1208" Action="Info" />    <!-- System using directives should be placed first -->
+    <Rule Id="SA1309" Action="None" />    <!-- Field names should not begin with underscore (disabled) -->
+    <Rule Id="SA1413" Action="Info" />    <!-- Use trailing comma in multi-line initializers -->
+  </Rules>
+
+  <!-- Nullable reference type rules -->
+  <Rules AnalyzerId="Microsoft.CodeAnalysis.CSharp" RuleNamespace="Microsoft.CodeAnalysis.CSharp">
+    <Rule Id="CS8600" Action="Warning" /> <!-- Converting null literal or possible null value to non-nullable type -->
+    <Rule Id="CS8601" Action="Warning" /> <!-- Possible null reference assignment -->
+    <Rule Id="CS8602" Action="Warning" /> <!-- Dereference of a possibly null reference -->
+    <Rule Id="CS8603" Action="Warning" /> <!-- Possible null reference return -->
+    <Rule Id="CS8604" Action="Warning" /> <!-- Possible null reference argument -->
+    <Rule Id="CS8605" Action="Warning" /> <!-- Unboxing a possibly null value -->
+    <Rule Id="CS8606" Action="Warning" /> <!-- Possible null reference assignment to iteration variable -->
+    <Rule Id="CS8607" Action="Warning" /> <!-- A possible null value may not be passed to a target marked with the [DisallowNull] attribute -->
+    <Rule Id="CS8608" Action="Warning" /> <!-- Nullability of reference types in type doesn't match overridden member -->
+    <Rule Id="CS8609" Action="Warning" /> <!-- Nullability of reference types in return type doesn't match overridden member -->
+    <Rule Id="CS8610" Action="Warning" /> <!-- Nullability of reference types in type of parameter doesn't match overridden member -->
+    <Rule Id="CS8611" Action="Warning" /> <!-- Nullability of reference types in type of parameter doesn't match partial method declaration -->
+    <Rule Id="CS8612" Action="Warning" /> <!-- Nullability of reference types in type doesn't match implicitly implemented member -->
+    <Rule Id="CS8613" Action="Warning" /> <!-- Nullability of reference types in return type doesn't match implicitly implemented member -->
+    <Rule Id="CS8614" Action="Warning" /> <!-- Nullability of reference types in type of parameter doesn't match implicitly implemented member -->
+    <Rule Id="CS8615" Action="Warning" /> <!-- Nullability of reference types in type doesn't match implemented member -->
+    <Rule Id="CS8616" Action="Warning" /> <!-- Nullability of reference types in return type doesn't match implemented member -->
+    <Rule Id="CS8617" Action="Warning" /> <!-- Nullability of reference types in type of parameter doesn't match implemented member -->
+    <Rule Id="CS8618" Action="Warning" /> <!-- Non-nullable field must contain a non-null value when exiting constructor -->
+    <Rule Id="CS8619" Action="Warning" /> <!-- Nullability of reference types in value doesn't match target type -->
+    <Rule Id="CS8620" Action="Warning" /> <!-- Argument cannot be used for parameter due to differences in the nullability of reference types -->
+    <Rule Id="CS8621" Action="Warning" /> <!-- Nullability of reference types in return type doesn't match the target delegate -->
+    <Rule Id="CS8622" Action="Warning" /> <!-- Nullability of reference types in type of parameter doesn't match the target delegate -->
+    <Rule Id="CS8624" Action="Warning" /> <!-- Argument cannot be used as an output for parameter due to differences in the nullability of reference types -->
+    <Rule Id="CS8625" Action="Warning" /> <!-- Cannot convert null literal to non-nullable reference type -->
+    <Rule Id="CS8629" Action="Warning" /> <!-- Nullable value type may be null -->
+    <Rule Id="CS8631" Action="Warning" /> <!-- The type cannot be used as type parameter in the generic type or method -->
+    <Rule Id="CS8633" Action="Warning" /> <!-- Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method -->
+    <Rule Id="CS8634" Action="Warning" /> <!-- The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'class' constraint -->
+    <Rule Id="CS8643" Action="Warning" /> <!-- Nullability of reference types in explicit interface specifier doesn't match interface implemented by the type -->
+    <Rule Id="CS8644" Action="Warning" /> <!-- Type does not implement interface member. Nullability of reference types in interface implemented by the base type doesn't match -->
+    <Rule Id="CS8645" Action="Warning" /> <!-- Member is already listed in the interface list on type with nullability differences -->
+    <Rule Id="CS8667" Action="Warning" /> <!-- Partial method declarations have inconsistent nullability in constraints for type parameter -->
+    <Rule Id="CS8669" Action="Warning" /> <!-- The annotation for nullable reference types should only be used in code within a '#nullable' annotations context -->
+    <Rule Id="CS8670" Action="Warning" /> <!-- Object or collection initializer implicitly dereferences possibly null member -->
+    <Rule Id="CS8714" Action="Warning" /> <!-- The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint -->
+  </Rules>
+</RuleSet>

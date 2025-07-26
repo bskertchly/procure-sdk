@@ -379,10 +379,13 @@ docs/rest_OAS_all.json
 
 # Test results and coverage
 coverage/
+coverage-report/
 TestResults/
+BenchmarkDotNet.Artifacts/
 *.trx
 *.coverage
 *.coveragexml
+*.html
 
 # Temporary files
 *.tmp

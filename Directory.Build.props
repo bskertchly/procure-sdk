@@ -30,11 +30,26 @@
     
     <!-- Code analysis -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <AnalysisLevel>latest-all</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+    <RunNullableAnnotations>true</RunNullableAnnotations>
+    <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)analyzers.ruleset</CodeAnalysisRuleSet>
+    
+    <!-- Security analysis -->
+    <EnableSecurityCodeScan>true</EnableSecurityCodeScan>
+    
+    <!-- Style enforcement -->
+    <TreatStyleCopWarningsAsErrors>false</TreatStyleCopWarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+    
+    <!-- Analyzers for all projects -->
+    <PackageReference Include="SecurityCodeScan.VS2019" PrivateAssets="All" />
+    <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" PrivateAssets="All" />
   </ItemGroup>
 </Project>

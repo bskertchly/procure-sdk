@@ -49,7 +49,7 @@ public class TokenManager : ITokenManager
     public async Task<AccessToken?> GetAccessTokenAsync(CancellationToken cancellationToken = default)
     {
         var token = await _storage.GetTokenAsync(_storageKey, cancellationToken);
-        
+
         if (token == null)
         {
             _logger.LogDebug("No access token found in storage");
@@ -60,7 +60,7 @@ public class TokenManager : ITokenManager
         if (token.ExpiresAt <= DateTimeOffset.UtcNow.Add(_options.TokenRefreshMargin))
         {
             _logger.LogDebug("Access token is expired or near expiration, attempting refresh");
-            
+
             try
             {
                 token = await RefreshTokenAsync(cancellationToken);
@@ -83,7 +83,7 @@ public class TokenManager : ITokenManager
         try
         {
             var currentToken = await _storage.GetTokenAsync(_storageKey, cancellationToken);
-            
+
             if (currentToken?.RefreshToken == null)
             {
                 throw new InvalidOperationException("No refresh token available");
@@ -117,11 +117,11 @@ public class TokenManager : ITokenManager
                 tokenResponse.Scope?.Split(' '));
 
             await StoreTokenAsync(newToken, cancellationToken);
-            
+
             TokenRefreshed?.Invoke(this, new TokenRefreshedEventArgs(newToken, currentToken));
-            
+
             _logger.LogInformation("Access token refreshed successfully");
-            
+
             return newToken;
         }
         catch (Exception ex)
@@ -139,7 +139,7 @@ public class TokenManager : ITokenManager
     public async Task StoreTokenAsync(AccessToken token, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(token);
-        
+
         await _storage.StoreTokenAsync(_storageKey, token, cancellationToken);
         _logger.LogDebug("Access token stored successfully");
     }

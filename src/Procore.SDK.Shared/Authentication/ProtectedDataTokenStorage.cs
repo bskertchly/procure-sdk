@@ -54,7 +54,7 @@ public class ProtectedDataTokenStorage : ITokenStorage
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
-        
+
         ArgumentNullException.ThrowIfNull(token);
 
         if (!OperatingSystem.IsWindows())
@@ -75,7 +75,7 @@ public class ProtectedDataTokenStorage : ITokenStorage
         var json = JsonSerializer.Serialize(tokenData);
         var dataBytes = Encoding.UTF8.GetBytes(json);
         var encryptedBytes = ProtectedData.Protect(dataBytes, Entropy, DataProtectionScope.CurrentUser);
-        
+
         // Create a new AccessToken with encrypted data (for demonstration, we store in memory)
         // In a real implementation, this would be stored in the Windows registry or secure storage
         var encryptedToken = new AccessToken(

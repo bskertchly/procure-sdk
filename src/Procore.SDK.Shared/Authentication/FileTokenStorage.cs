@@ -13,7 +13,7 @@ namespace Procore.SDK.Shared.Authentication;
 /// File-based token storage with encryption
 /// Stores tokens in an encrypted JSON file for persistence across application restarts
 /// </summary>
-public class FileTokenStorage : ITokenStorage, IDisposable
+public sealed class FileTokenStorage : ITokenStorage, IDisposable
 {
     private readonly string _filePath;
     private readonly SemaphoreSlim _fileLock = new(1, 1);
@@ -27,9 +27,9 @@ public class FileTokenStorage : ITokenStorage, IDisposable
     public FileTokenStorage(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        
+
         _filePath = filePath;
-        
+
         // Generate consistent entropy based on file path for encryption
         using var sha256 = SHA256.Create();
         _entropy = sha256.ComputeHash(Encoding.UTF8.GetBytes(_filePath + Environment.MachineName));
@@ -49,9 +49,9 @@ public class FileTokenStorage : ITokenStorage, IDisposable
 
             var encryptedData = await File.ReadAllBytesAsync(_filePath, cancellationToken);
             var decryptedJson = DecryptData(encryptedData);
-            
+
             var tokenData = JsonSerializer.Deserialize<Dictionary<string, TokenData>>(decryptedJson);
-            
+
             if (tokenData != null && tokenData.TryGetValue(key, out var data))
             {
                 return new AccessToken(
@@ -85,7 +85,7 @@ public class FileTokenStorage : ITokenStorage, IDisposable
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
-        
+
         ArgumentNullException.ThrowIfNull(token);
 
         await _fileLock.WaitAsync(cancellationToken);
@@ -157,9 +157,9 @@ public class FileTokenStorage : ITokenStorage, IDisposable
 
             var encryptedData = await File.ReadAllBytesAsync(_filePath, cancellationToken);
             var decryptedJson = DecryptData(encryptedData);
-            
+
             var tokenData = JsonSerializer.Deserialize<Dictionary<string, TokenData>>(decryptedJson);
-            
+
             if (tokenData != null && tokenData.Remove(key))
             {
                 if (tokenData.Count == 0)
@@ -193,7 +193,7 @@ public class FileTokenStorage : ITokenStorage, IDisposable
     private byte[] EncryptData(string data)
     {
         var dataBytes = Encoding.UTF8.GetBytes(data);
-        
+
         if (OperatingSystem.IsWindows())
         {
             // Use DPAPI on Windows for additional security
@@ -208,6 +208,7 @@ public class FileTokenStorage : ITokenStorage, IDisposable
             {
                 result[i] = (byte)(dataBytes[i] ^ _entropy[i % _entropy.Length]);
             }
+
             return result;
         }
     }
@@ -228,6 +229,7 @@ public class FileTokenStorage : ITokenStorage, IDisposable
             {
                 result[i] = (byte)(encryptedData[i] ^ _entropy[i % _entropy.Length]);
             }
+
             return Encoding.UTF8.GetString(result);
         }
     }
@@ -235,7 +237,7 @@ public class FileTokenStorage : ITokenStorage, IDisposable
     /// <summary>
     /// Internal representation of token data for JSON serialization
     /// </summary>
-    private class TokenData
+    private sealed class TokenData
     {
         public string Token { get; set; } = string.Empty;
         public string TokenType { get; set; } = string.Empty;
@@ -247,11 +249,20 @@ public class FileTokenStorage : ITokenStorage, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        if (!_disposed)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Protected virtual dispose method to follow proper dispose pattern
+    /// </summary>
+    /// <param name="disposing">True if called from Dispose(), false if called from finalizer</param>
+    private void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
         {
             _fileLock.Dispose();
             _disposed = true;
         }
-        GC.SuppressFinalize(this);
     }
 }
