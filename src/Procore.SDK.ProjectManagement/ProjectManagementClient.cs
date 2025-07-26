@@ -101,7 +101,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>The created project.</returns>
     public async Task<Project> CreateProjectAsync(int companyId, CreateProjectRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -142,7 +142,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>The updated project.</returns>
     public async Task<Project> UpdateProjectAsync(int companyId, int projectId, UpdateProjectRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -265,7 +265,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>The created budget change.</returns>
     public async Task<BudgetChange> CreateBudgetChangeAsync(int companyId, int projectId, CreateBudgetChangeRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -386,7 +386,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>The created change order.</returns>
     public async Task<ChangeOrder> CreateChangeOrderAsync(int companyId, int projectId, CreateChangeOrderRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -615,7 +615,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>The created meeting.</returns>
     public async Task<Meeting> CreateMeetingAsync(int companyId, int projectId, CreateMeetingRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -653,7 +653,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>The updated meeting.</returns>
     public async Task<Meeting> UpdateMeetingAsync(int companyId, int projectId, int meetingId, CreateMeetingRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -701,7 +701,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get active projects for company {CompanyId}", companyId);
-            throw;
+            throw new InvalidOperationException($"Failed to get active projects for company {companyId}", ex);
         }
     }
 
@@ -714,7 +714,10 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>The project.</returns>
     public async Task<Project> GetProjectByNameAsync(int companyId, string projectName, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(projectName)) throw new ArgumentException("Project name cannot be null or empty", nameof(projectName));
+        if (string.IsNullOrEmpty(projectName))
+        {
+            throw new ArgumentException("Project name cannot be null or empty", nameof(projectName));
+        }
         
         try
         {
@@ -733,7 +736,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get project by name {ProjectName} for company {CompanyId}", projectName, companyId);
-            throw;
+            throw new InvalidOperationException($"Failed to get project by name {projectName} for company {companyId}", ex);
         }
     }
 
@@ -756,7 +759,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get budget total for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Failed to get budget total for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -780,7 +783,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get budget variances for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Failed to get budget variances for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -797,7 +800,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>A paged result of projects.</returns>
     public async Task<PagedResult<Project>> GetProjectsPagedAsync(int companyId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -818,7 +821,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get projects with pagination for company {CompanyId}", companyId);
-            throw;
+            throw new InvalidOperationException($"Failed to get projects with pagination for company {companyId}", ex);
         }
     }
 
@@ -832,7 +835,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>A paged result of budget line items.</returns>
     public async Task<PagedResult<BudgetLineItem>> GetBudgetLineItemsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -853,7 +856,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get budget line items with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Failed to get budget line items with pagination for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -867,7 +870,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>A paged result of commitment contracts.</returns>
     public async Task<PagedResult<CommitmentContract>> GetCommitmentContractsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -888,7 +891,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get commitment contracts with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Failed to get commitment contracts with pagination for project {projectId} in company {companyId}", ex);
         }
     }
 

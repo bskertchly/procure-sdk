@@ -35,10 +35,14 @@ public class ProtectedDataTokenStorage : ITokenStorage
     public Task<AccessToken?> GetTokenAsync(string key, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
+        }
 
         if (!OperatingSystem.IsWindows())
+        {
             throw new PlatformNotSupportedException("ProtectedDataTokenStorage is only supported on Windows platforms");
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -53,12 +57,16 @@ public class ProtectedDataTokenStorage : ITokenStorage
     public Task StoreTokenAsync(string key, AccessToken token, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
+        }
 
         ArgumentNullException.ThrowIfNull(token);
 
         if (!OperatingSystem.IsWindows())
+        {
             throw new PlatformNotSupportedException("ProtectedDataTokenStorage is only supported on Windows platforms");
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -97,10 +105,14 @@ public class ProtectedDataTokenStorage : ITokenStorage
     public Task DeleteTokenAsync(string key, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
+        }
 
         if (!OperatingSystem.IsWindows())
+        {
             throw new PlatformNotSupportedException("ProtectedDataTokenStorage is only supported on Windows platforms");
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -115,7 +127,7 @@ public class ProtectedDataTokenStorage : ITokenStorage
     /// <summary>
     /// Internal representation of token data for JSON serialization
     /// </summary>
-    private class TokenData
+    private sealed class TokenData
     {
         public string Token { get; set; } = string.Empty;
         public string TokenType { get; set; } = string.Empty;

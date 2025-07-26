@@ -39,13 +39,17 @@ public sealed class FileTokenStorage : ITokenStorage, IDisposable
     public async Task<AccessToken?> GetTokenAsync(string key, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
+        }
 
         await _fileLock.WaitAsync(cancellationToken);
         try
         {
             if (!File.Exists(_filePath))
+            {
                 return null;
+            }
 
             var encryptedData = await File.ReadAllBytesAsync(_filePath, cancellationToken);
             var decryptedJson = DecryptData(encryptedData);
@@ -84,7 +88,9 @@ public sealed class FileTokenStorage : ITokenStorage, IDisposable
     public async Task StoreTokenAsync(string key, AccessToken token, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
+        }
 
         ArgumentNullException.ThrowIfNull(token);
 
@@ -147,7 +153,9 @@ public sealed class FileTokenStorage : ITokenStorage, IDisposable
     public async Task DeleteTokenAsync(string key, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
+        }
 
         await _fileLock.WaitAsync(cancellationToken);
         try

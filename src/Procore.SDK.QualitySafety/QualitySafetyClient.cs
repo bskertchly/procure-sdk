@@ -57,7 +57,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -94,7 +94,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -108,7 +108,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>The created observation.</returns>
     public async Task<Observation> CreateObservationAsync(int companyId, int projectId, CreateObservationRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -135,7 +135,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to create observation for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -150,7 +150,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>The updated observation.</returns>
     public async Task<Observation> UpdateObservationAsync(int companyId, int projectId, int observationId, UpdateObservationRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -174,7 +174,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to update observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -197,7 +197,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to delete observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -224,7 +224,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get inspection templates for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -258,7 +258,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get inspection template {TemplateId} for project {ProjectId} in company {CompanyId}", templateId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -272,7 +272,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>The created inspection template.</returns>
     public async Task<InspectionTemplate> CreateInspectionTemplateAsync(int companyId, int projectId, CreateInspectionTemplateRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -305,7 +305,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to create inspection template for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -320,7 +320,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>The updated inspection template.</returns>
     public async Task<InspectionTemplate> UpdateInspectionTemplateAsync(int companyId, int projectId, int templateId, CreateInspectionTemplateRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -352,7 +352,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to update inspection template {TemplateId} for project {ProjectId} in company {CompanyId}", templateId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -379,7 +379,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get inspection items for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -413,7 +413,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get inspection item {ItemId} for project {ProjectId} in company {CompanyId}", itemId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -429,7 +429,10 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>The updated inspection item.</returns>
     public async Task<InspectionItem> UpdateInspectionItemAsync(int companyId, int projectId, int itemId, string response, InspectionItemStatus status, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(response)) throw new ArgumentException("Response cannot be null or empty", nameof(response));
+        if (string.IsNullOrEmpty(response))
+        {
+            throw new ArgumentException("Response cannot be null or empty", nameof(response));
+        }
         
         try
         {
@@ -452,7 +455,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to update inspection item {ItemId} for project {ProjectId} in company {CompanyId}", itemId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -479,7 +482,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get safety incidents for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -517,7 +520,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get safety incident {IncidentId} for project {ProjectId} in company {CompanyId}", incidentId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -531,7 +534,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>The created safety incident.</returns>
     public async Task<SafetyIncident> CreateSafetyIncidentAsync(int companyId, int projectId, CreateSafetyIncidentRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -557,7 +560,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to create safety incident for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -589,7 +592,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to update safety incident {IncidentId} for project {ProjectId} in company {CompanyId}", incidentId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -616,7 +619,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get compliance checks for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -651,7 +654,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get compliance check {CheckId} for project {ProjectId} in company {CompanyId}", checkId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -665,7 +668,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>The created compliance check.</returns>
     public async Task<ComplianceCheck> CreateComplianceCheckAsync(int companyId, int projectId, CreateComplianceCheckRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -689,7 +692,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to create compliance check for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -725,7 +728,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to complete compliance check {CheckId} for project {ProjectId} in company {CompanyId}", checkId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -752,7 +755,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get open observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -775,7 +778,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get critical observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -798,7 +801,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get overdue observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -822,7 +825,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get recent incidents for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -852,7 +855,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get observation summary for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -870,7 +873,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>A paged result of observations.</returns>
     public async Task<PagedResult<Observation>> GetObservationsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -891,7 +894,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get observations with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -905,7 +908,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>A paged result of inspection templates.</returns>
     public async Task<PagedResult<InspectionTemplate>> GetInspectionTemplatesPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -926,7 +929,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get inspection templates with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 
@@ -940,7 +943,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>A paged result of safety incidents.</returns>
     public async Task<PagedResult<SafetyIncident>> GetSafetyIncidentsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -961,7 +964,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get safety incidents with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
     }
 

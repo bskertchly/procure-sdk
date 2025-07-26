@@ -57,7 +57,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get invoices for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -94,7 +94,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get invoice {InvoiceId} for project {ProjectId} in company {CompanyId}", invoiceId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -108,7 +108,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>The created invoice.</returns>
     public async Task<Invoice> CreateInvoiceAsync(int companyId, int projectId, CreateInvoiceRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -133,7 +133,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to create invoice for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -163,7 +163,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to approve invoice {InvoiceId} for project {ProjectId} in company {CompanyId}", invoiceId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -178,7 +178,10 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>The rejected invoice.</returns>
     public async Task<Invoice> RejectInvoiceAsync(int companyId, int projectId, int invoiceId, string reason, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(reason)) throw new ArgumentException("Reason cannot be null or empty", nameof(reason));
+        if (string.IsNullOrEmpty(reason))
+        {
+            throw new ArgumentException("Reason cannot be null or empty", nameof(reason));
+        }
         
         try
         {
@@ -197,7 +200,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to reject invoice {InvoiceId} for project {ProjectId} in company {CompanyId}", invoiceId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -215,7 +218,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>The financial transaction record.</returns>
     public async Task<FinancialTransaction> ProcessPaymentAsync(int companyId, int projectId, ProcessPaymentRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -239,7 +242,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to process payment for invoice {InvoiceId} in project {ProjectId} in company {CompanyId}", request.InvoiceId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -262,7 +265,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get transactions for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -289,7 +292,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get cost codes for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -323,7 +326,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get cost code {CostCodeId} for project {ProjectId} in company {CompanyId}", costCodeId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -350,7 +353,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get total cost for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -380,7 +383,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get cost summary for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -398,7 +401,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>A paged result of invoices.</returns>
     public async Task<PagedResult<Invoice>> GetInvoicesPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -419,7 +422,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get invoices with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -433,7 +436,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>A paged result of financial transactions.</returns>
     public async Task<PagedResult<FinancialTransaction>> GetTransactionsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -454,7 +457,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get transactions with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 

@@ -64,12 +64,12 @@ public record AccessToken(
 public class TokenRefreshedEventArgs : EventArgs
 {
     /// <summary>
-    /// The new access token that was obtained
+    /// Gets the new access token that was obtained.
     /// </summary>
     public AccessToken NewToken { get; }
 
     /// <summary>
-    /// The previous access token that was replaced (may be null)
+    /// Gets the previous access token that was replaced (may be null).
     /// </summary>
     public AccessToken? OldToken { get; }
 

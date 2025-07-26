@@ -56,7 +56,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get resources for company {CompanyId}", companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -92,7 +92,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get resource {ResourceId} for company {CompanyId}", resourceId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -105,7 +105,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>The created resource.</returns>
     public async Task<Resource> CreateResourceAsync(int companyId, CreateResourceRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -130,7 +130,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to create resource for company {CompanyId}", companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -144,7 +144,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>The updated resource.</returns>
     public async Task<Resource> UpdateResourceAsync(int companyId, int resourceId, CreateResourceRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -167,7 +167,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to update resource {ResourceId} for company {CompanyId}", resourceId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -189,7 +189,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to delete resource {ResourceId} for company {CompanyId}", resourceId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -216,7 +216,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get resource allocations for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -252,7 +252,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get resource allocation {AllocationId} for project {ProjectId} in company {CompanyId}", allocationId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -266,7 +266,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>The created resource allocation.</returns>
     public async Task<ResourceAllocation> AllocateResourceAsync(int companyId, int projectId, AllocateResourceRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -290,7 +290,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to allocate resource {ResourceId} to project {ProjectId} in company {CompanyId}", request.ResourceId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -305,7 +305,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>The updated resource allocation.</returns>
     public async Task<ResourceAllocation> UpdateAllocationAsync(int companyId, int projectId, int allocationId, AllocateResourceRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -327,7 +327,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to update resource allocation {AllocationId} for project {ProjectId} in company {CompanyId}", allocationId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -350,7 +350,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to release resource allocation {AllocationId} for project {ProjectId} in company {CompanyId}", allocationId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -377,7 +377,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get workforce assignments for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -413,7 +413,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get workforce assignment {AssignmentId} for project {ProjectId} in company {CompanyId}", assignmentId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -427,7 +427,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>The created workforce assignment.</returns>
     public async Task<WorkforceAssignment> CreateWorkforceAssignmentAsync(int companyId, int projectId, CreateWorkforceAssignmentRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -451,7 +451,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to create workforce assignment for worker {WorkerId} to project {ProjectId} in company {CompanyId}", request.WorkerId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -466,7 +466,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>The updated workforce assignment.</returns>
     public async Task<WorkforceAssignment> UpdateWorkforceAssignmentAsync(int companyId, int projectId, int assignmentId, CreateWorkforceAssignmentRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -488,7 +488,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to update workforce assignment {AssignmentId} for project {ProjectId} in company {CompanyId}", assignmentId, projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -515,7 +515,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get capacity plans for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -529,7 +529,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>The created capacity plan.</returns>
     public async Task<CapacityPlan> CreateCapacityPlanAsync(int companyId, int projectId, CreateCapacityPlanRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
         try
         {
@@ -556,7 +556,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to create capacity plan for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -584,7 +584,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get available resources for company {CompanyId}", companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -606,7 +606,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get over-allocated resources for company {CompanyId}", companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -629,7 +629,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get utilization rate for resource {ResourceId} in company {CompanyId}", resourceId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -659,7 +659,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get capacity analysis for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -688,7 +688,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to optimize resource allocation for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -711,7 +711,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get optimal workforce assignments for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -728,7 +728,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>A paged result of resources.</returns>
     public async Task<PagedResult<Resource>> GetResourcesPagedAsync(int companyId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -749,7 +749,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get resources with pagination for company {CompanyId}", companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -763,7 +763,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>A paged result of resource allocations.</returns>
     public async Task<PagedResult<ResourceAllocation>> GetResourceAllocationsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -784,7 +784,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get resource allocations with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
@@ -798,7 +798,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>A paged result of workforce assignments.</returns>
     public async Task<PagedResult<WorkforceAssignment>> GetWorkforceAssignmentsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
         try
         {
@@ -819,7 +819,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to get workforce assignments with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
+            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
         }
     }
 
