@@ -1,0 +1,55 @@
+@{
+    ViewData["Title"] = "Sign In";
+    var returnUrl = ViewData["ReturnUrl"] as string;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-center">🔐 Sign In to Procore</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-center text-muted">
+                    Authenticate with your Procore account to access the API and manage your projects.
+                </p>
+                
+                <div class="d-grid">
+                    <form asp-action="StartOAuth" method="post">
+                        @if (!string.IsNullOrEmpty(returnUrl))
+                        {
+                            <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        }
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt"></i> Sign In with Procore
+                        </button>
+                    </form>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <h6>What happens next?</h6>
+                    <ol class="text-start">
+                        <li>You'll be redirected to Procore's secure login page</li>
+                        <li>Sign in with your Procore credentials</li>
+                        <li>Authorize this application to access your account</li>
+                        <li>You'll be redirected back here with full access</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6>🔒 Security Features</h6>
+                <ul class="list-unstyled small text-muted">
+                    <li>✅ OAuth 2.0 with PKCE (RFC 7636)</li>
+                    <li>✅ CSRF protection with state parameter</li>
+                    <li>✅ Secure token storage</li>
+                    <li>✅ Automatic token refresh</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
