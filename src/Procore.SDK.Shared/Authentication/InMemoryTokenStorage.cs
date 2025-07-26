@@ -17,7 +17,9 @@ public class InMemoryTokenStorage : ITokenStorage
     public Task<AccessToken?> GetTokenAsync(string key, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -29,7 +31,9 @@ public class InMemoryTokenStorage : ITokenStorage
     public Task StoreTokenAsync(string key, AccessToken token, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
+        }
 
         ArgumentNullException.ThrowIfNull(token);
 
@@ -43,7 +47,9 @@ public class InMemoryTokenStorage : ITokenStorage
     public Task DeleteTokenAsync(string key, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(key))
+        {
             throw new ArgumentException("Key cannot be null or empty", nameof(key));
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
 

@@ -65,6 +65,7 @@ public class ProcoreAuthHandler : DelegatingHandler
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to refresh token on 401 response");
+
                 // Return the original 401 response if refresh fails
             }
             finally
@@ -166,6 +167,7 @@ public class ProcoreAuthHandler : DelegatingHandler
         {
             _refreshSemaphore.Dispose();
         }
+
         base.Dispose(disposing);
     }
 }
