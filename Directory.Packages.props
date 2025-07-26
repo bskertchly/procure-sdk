@@ -24,6 +24,12 @@
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
     <PackageVersion Include="System.Text.Json" Version="8.0.5" />
     <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Cookies" Version="2.2.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OAuth" Version="2.2.0" />
+    <PackageVersion Include="System.Diagnostics.Process" Version="4.3.0" />
     
     <!-- Kiota generated client dependencies -->
     <PackageVersion Include="Microsoft.Kiota.Abstractions" Version="1.12.0" />

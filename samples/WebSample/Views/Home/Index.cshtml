@@ -1,0 +1,89 @@
+@model HomeViewModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <h1>🏗️ Procore SDK for .NET - Web Sample</h1>
+        <p class="lead">
+            Welcome to the Procore SDK for .NET web sample application. This application demonstrates 
+            how to integrate OAuth PKCE authentication and API operations in an ASP.NET Core web application.
+        </p>
+        
+        @if (Model.IsAuthenticated)
+        {
+            <div class="alert alert-success">
+                <h4 class="alert-heading">✅ You are authenticated!</h4>
+                <p>You have successfully authenticated with Procore and can now access the API.</p>
+                <hr>
+                <p class="mb-0">
+                    <strong>Token expires:</strong> @Model.TokenExpiresAt?.ToString("yyyy-MM-dd HH:mm:ss") UTC<br>
+                    <strong>Scopes:</strong> @string.Join(", ", Model.TokenScopes)
+                </p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">📊 Dashboard</h5>
+                            <p class="card-text">View your projects and account information.</p>
+                            <a asp-controller="Projects" asp-action="Dashboard" class="btn btn-primary">Go to Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">📁 Projects</h5>
+                            <p class="card-text">Browse and manage your Procore projects.</p>
+                            <a asp-controller="Projects" asp-action="Index" class="btn btn-primary">View Projects</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <h4 class="alert-heading">🔐 Authentication Required</h4>
+                <p>To access the Procore API and view your projects, you need to authenticate with your Procore account.</p>
+                <hr>
+                <a asp-controller="Auth" asp-action="Login" class="btn btn-primary">Sign In with Procore</a>
+            </div>
+        }
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Features Demonstrated</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li>✅ OAuth 2.0 PKCE Flow</li>
+                    <li>✅ State Parameter Validation</li>
+                    <li>✅ Session-based Token Storage</li>
+                    <li>✅ Automatic Token Refresh</li>
+                    <li>✅ CRUD Operations</li>
+                    <li>✅ Error Handling</li>
+                    <li>✅ Proper DI Configuration</li>
+                    <li>✅ Security Best Practices</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Technical Details</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Framework:</strong> ASP.NET Core 8.0</p>
+                <p><strong>Authentication:</strong> OAuth 2.0 with PKCE</p>
+                <p><strong>Token Storage:</strong> Session-based</p>
+                <p><strong>API Client:</strong> Procore SDK Core</p>
+            </div>
+        </div>
+    </div>
+</div>
