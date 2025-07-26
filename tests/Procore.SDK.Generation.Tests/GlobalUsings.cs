@@ -1,0 +1,12 @@
+global using Xunit;
+global using NSubstitute;
+global using FluentAssertions;
+global using System.IO.Abstractions;
+global using System.IO.Abstractions.TestingHelpers;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Logging.Testing;
+global using Microsoft.Extensions.DependencyInjection;
+global using System.Diagnostics;
+global using System.Text.Json;
+global using Newtonsoft.Json.Linq;
+global using System.Text;

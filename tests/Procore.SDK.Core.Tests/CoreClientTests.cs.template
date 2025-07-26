@@ -1,0 +1,665 @@
+using Microsoft.Kiota.Http.HttpClientLibrary;
+using Procore.SDK.Core.Models;
+
+namespace Procore.SDK.Core.Tests;
+
+/// <summary>
+/// Tests for the CoreClient wrapper class that provides a domain-specific
+/// API over the generated Kiota client. These tests define the expected behavior
+/// and API surface of the wrapper.
+/// </summary>
+public class CoreClientTests : IDisposable
+{
+    private readonly IRequestAdapter _mockRequestAdapter;
+    private readonly ITokenManager _mockTokenManager;
+    private readonly ILogger<object> _mockLogger; // Temporary placeholder
+    //private readonly CoreClient _generatedClient;
+    //private readonly ProcoreSDK.Core.CoreClient _sut;
+
+    public CoreClientTests()
+    {
+        _mockRequestAdapter = Substitute.For<IRequestAdapter>();
+        _mockTokenManager = Substitute.For<ITokenManager>();
+        _mockLogger = Substitute.For<ILogger<object>>();
+        
+        // TODO: Uncomment when implementation is ready
+        // Create the generated Kiota client
+        //_generatedClient = new CoreClient(_mockRequestAdapter);
+        
+        // Create our wrapper client
+        //_sut = new ProcoreSDK.Core.CoreClient(_generatedClient, _mockTokenManager, _mockLogger);
+    }
+
+    #region Constructor Tests
+
+    [Fact]
+    public void CoreClient_Constructor_Should_Require_GeneratedClient()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() => 
+            new ProcoreSDK.Core.CoreClient(null!, _mockTokenManager, _mockLogger));
+    }
+
+    [Fact]
+    public void CoreClient_Constructor_Should_Require_TokenManager()
+    {
+        // Arrange & Act & Assert
+        Assert.Throws<ArgumentNullException>(() => 
+            new ProcoreSDK.Core.CoreClient(_generatedClient, null!, _mockLogger));
+    }
+
+    [Fact]
+    public void CoreClient_Constructor_Should_Allow_Null_Logger()
+    {
+        // Arrange & Act
+        var client = new ProcoreSDK.Core.CoreClient(_generatedClient, _mockTokenManager, null);
+        
+        // Assert
+        client.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void CoreClient_Should_Expose_RawClient()
+    {
+        // Arrange & Act
+        var rawClient = _sut.RawClient;
+        
+        // Assert
+        rawClient.Should().BeSameAs(_generatedClient);
+    }
+
+    #endregion
+
+    #region Company Operations Tests
+
+    [Fact]
+    public async Task GetCompaniesAsync_Should_Return_Companies()
+    {
+        // Arrange
+        var expectedCompanies = new List<Company>
+        {
+            new() { Id = 1, Name = "Test Company 1", IsActive = true },
+            new() { Id = 2, Name = "Test Company 2", IsActive = true }
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedCompanies));
+
+        // Act
+        var result = await _sut.GetCompaniesAsync();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(2);
+        result.First().Name.Should().Be("Test Company 1");
+    }
+
+    [Fact]
+    public async Task GetCompanyAsync_Should_Return_Single_Company()
+    {
+        // Arrange
+        const int companyId = 123;
+        var expectedCompany = new Company { Id = companyId, Name = "Test Company", IsActive = true };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<Company>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedCompany));
+
+        // Act
+        var result = await _sut.GetCompanyAsync(companyId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Id.Should().Be(companyId);
+        result.Name.Should().Be("Test Company");
+    }
+
+    [Fact]
+    public async Task GetCompanyAsync_Should_Throw_ResourceNotFound_When_Company_Not_Exists()
+    {
+        // Arrange
+        const int companyId = 999;
+        var httpException = new HttpRequestException("Not Found");
+        
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<Company>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<object>(httpException));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ResourceNotFoundException>(
+            () => _sut.GetCompanyAsync(companyId));
+        
+        exception.Message.Should().Contain("Company");
+        exception.Message.Should().Contain(companyId.ToString());
+    }
+
+    [Fact]
+    public async Task CreateCompanyAsync_Should_Create_And_Return_Company()
+    {
+        // Arrange
+        var request = new CreateCompanyRequest 
+        { 
+            Name = "New Company",
+            Description = "A test company",
+            Address = new Address { City = "Test City" }
+        };
+        
+        var expectedCompany = new Company 
+        { 
+            Id = 456, 
+            Name = request.Name, 
+            Description = request.Description,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<Company>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedCompany));
+
+        // Act
+        var result = await _sut.CreateCompanyAsync(request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Id.Should().Be(456);
+        result.Name.Should().Be(request.Name);
+        result.Description.Should().Be(request.Description);
+    }
+
+    [Fact]
+    public async Task UpdateCompanyAsync_Should_Update_And_Return_Company()
+    {
+        // Arrange
+        const int companyId = 123;
+        var request = new UpdateCompanyRequest 
+        { 
+            Name = "Updated Company",
+            IsActive = false
+        };
+        
+        var expectedCompany = new Company 
+        { 
+            Id = companyId, 
+            Name = request.Name, 
+            IsActive = request.IsActive.Value,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<Company>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedCompany));
+
+        // Act
+        var result = await _sut.UpdateCompanyAsync(companyId, request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Id.Should().Be(companyId);
+        result.Name.Should().Be(request.Name);
+        result.IsActive.Should().Be(request.IsActive.Value);
+    }
+
+    [Fact]
+    public async Task DeleteCompanyAsync_Should_Complete_Successfully()
+    {
+        // Arrange
+        const int companyId = 123;
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        // Act & Assert
+        await _sut.DeleteCompanyAsync(companyId);
+        
+        // Verify the request was made
+        await _mockRequestAdapter.Received(1)
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<CancellationToken>());
+    }
+
+    #endregion
+
+    #region User Operations Tests
+
+    [Fact]
+    public async Task GetUsersAsync_Should_Return_Users_For_Company()
+    {
+        // Arrange
+        const int companyId = 123;
+        var expectedUsers = new List<User>
+        {
+            new() { Id = 1, Email = "user1@test.com", FirstName = "John", LastName = "Doe" },
+            new() { Id = 2, Email = "user2@test.com", FirstName = "Jane", LastName = "Smith" }
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedUsers));
+
+        // Act
+        var result = await _sut.GetUsersAsync(companyId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(2);
+        result.First().Email.Should().Be("user1@test.com");
+    }
+
+    [Fact]
+    public async Task GetUserAsync_Should_Return_Single_User()
+    {
+        // Arrange
+        const int companyId = 123;
+        const int userId = 456;
+        var expectedUser = new User 
+        { 
+            Id = userId, 
+            Email = "test@example.com", 
+            FirstName = "John", 
+            LastName = "Doe",
+            IsActive = true
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<User>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedUser));
+
+        // Act
+        var result = await _sut.GetUserAsync(companyId, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Id.Should().Be(userId);
+        result.Email.Should().Be("test@example.com");
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_Should_Create_And_Return_User()
+    {
+        // Arrange
+        const int companyId = 123;
+        var request = new CreateUserRequest 
+        { 
+            Email = "newuser@test.com",
+            FirstName = "New",
+            LastName = "User",
+            JobTitle = "Developer"
+        };
+        
+        var expectedUser = new User 
+        { 
+            Id = 789, 
+            Email = request.Email, 
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            JobTitle = request.JobTitle,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<User>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedUser));
+
+        // Act
+        var result = await _sut.CreateUserAsync(companyId, request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Id.Should().Be(789);
+        result.Email.Should().Be(request.Email);
+        result.JobTitle.Should().Be(request.JobTitle);
+    }
+
+    #endregion
+
+    #region Document Operations Tests
+
+    [Fact]
+    public async Task GetDocumentsAsync_Should_Return_Documents_For_Company()
+    {
+        // Arrange
+        const int companyId = 123;
+        var expectedDocuments = new List<Document>
+        {
+            new() { Id = 1, Name = "Document 1", FileName = "doc1.pdf", ContentType = "application/pdf" },
+            new() { Id = 2, Name = "Document 2", FileName = "doc2.docx", ContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedDocuments));
+
+        // Act
+        var result = await _sut.GetDocumentsAsync(companyId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(2);
+        result.First().Name.Should().Be("Document 1");
+    }
+
+    [Fact]
+    public async Task UploadDocumentAsync_Should_Upload_And_Return_Document()
+    {
+        // Arrange
+        const int companyId = 123;
+        var fileContent = "Test file content"u8.ToArray();
+        var fileStream = new MemoryStream(fileContent);
+        
+        var request = new UploadDocumentRequest 
+        { 
+            Name = "Test Document",
+            Description = "A test document",
+            FileStream = fileStream,
+            FileName = "test.txt",
+            ContentType = "text/plain",
+            IsPrivate = false
+        };
+        
+        var expectedDocument = new Document 
+        { 
+            Id = 456, 
+            Name = request.Name, 
+            Description = request.Description,
+            FileName = request.FileName,
+            ContentType = request.ContentType,
+            FileSize = fileContent.Length,
+            IsPrivate = request.IsPrivate,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<Document>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedDocument));
+
+        // Act
+        var result = await _sut.UploadDocumentAsync(companyId, request);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Id.Should().Be(456);
+        result.Name.Should().Be(request.Name);
+        result.FileName.Should().Be(request.FileName);
+        result.FileSize.Should().Be(fileContent.Length);
+    }
+
+    #endregion
+
+    #region Convenience Methods Tests
+
+    [Fact]
+    public async Task GetCurrentUserAsync_Should_Return_Current_User()
+    {
+        // Arrange
+        var expectedUser = new User 
+        { 
+            Id = 1, 
+            Email = "current@user.com", 
+            FirstName = "Current", 
+            LastName = "User",
+            IsActive = true
+        };
+
+        // Mock the token manager to return a user ID or similar
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns("valid_token");
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<User>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedUser));
+
+        // Act
+        var result = await _sut.GetCurrentUserAsync();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Email.Should().Be("current@user.com");
+    }
+
+    [Fact]
+    public async Task GetCompanyByNameAsync_Should_Return_Company_With_Matching_Name()
+    {
+        // Arrange
+        const string companyName = "Test Company";
+        var expectedCompany = new Company 
+        { 
+            Id = 123, 
+            Name = companyName, 
+            IsActive = true 
+        };
+
+        var allCompanies = new List<Company>
+        {
+            new() { Id = 1, Name = "Other Company", IsActive = true },
+            expectedCompany,
+            new() { Id = 3, Name = "Another Company", IsActive = true }
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(allCompanies));
+
+        // Act
+        var result = await _sut.GetCompanyByNameAsync(companyName);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Id.Should().Be(123);
+        result.Name.Should().Be(companyName);
+    }
+
+    [Fact]
+    public async Task SearchUsersAsync_Should_Return_Filtered_Users()
+    {
+        // Arrange
+        const int companyId = 123;
+        const string searchTerm = "john";
+        var expectedUsers = new List<User>
+        {
+            new() { Id = 1, Email = "john.doe@test.com", FirstName = "John", LastName = "Doe" },
+            new() { Id = 2, Email = "johnson@test.com", FirstName = "Bob", LastName = "Johnson" }
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(expectedUsers));
+
+        // Act
+        var result = await _sut.SearchUsersAsync(companyId, searchTerm);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(2);
+        result.Should().Contain(u => u.FirstName.Contains("John", StringComparison.OrdinalIgnoreCase));
+    }
+
+    #endregion
+
+    #region Pagination Tests
+
+    [Fact]
+    public async Task GetCompaniesPagedAsync_Should_Return_Paged_Results()
+    {
+        // Arrange
+        var options = new PaginationOptions { Page = 1, PerPage = 10 };
+        var companies = new List<Company>
+        {
+            new() { Id = 1, Name = "Company 1" },
+            new() { Id = 2, Name = "Company 2" }
+        };
+
+        var pagedResponse = new
+        {
+            data = companies,
+            meta = new
+            {
+                total_count = 25,
+                page = 1,
+                per_page = 10,
+                total_pages = 3
+            }
+        };
+
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(pagedResponse));
+
+        // Act
+        var result = await _sut.GetCompaniesPagedAsync(options);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Items.Should().HaveCount(2);
+        result.TotalCount.Should().Be(25);
+        result.Page.Should().Be(1);
+        result.PerPage.Should().Be(10);
+        result.TotalPages.Should().Be(3);
+        result.HasNextPage.Should().BeTrue();
+        result.HasPreviousPage.Should().BeFalse();
+    }
+
+    #endregion
+
+    #region Error Handling Tests
+
+    [Fact]
+    public async Task GetCompanyAsync_Should_Throw_UnauthorizedException_On_401()
+    {
+        // Arrange
+        const int companyId = 123;
+        var httpException = new HttpRequestException("Unauthorized")
+        {
+            Data = { { "StatusCode", HttpStatusCode.Unauthorized } }
+        };
+        
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<Company>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<object>(httpException));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<UnauthorizedException>(
+            () => _sut.GetCompanyAsync(companyId));
+        
+        exception.Message.Should().Contain("Unauthorized");
+        exception.ErrorCode.Should().Be("UNAUTHORIZED");
+    }
+
+    [Fact]
+    public async Task GetCompanyAsync_Should_Throw_ForbiddenException_On_403()
+    {
+        // Arrange
+        const int companyId = 123;
+        var httpException = new HttpRequestException("Forbidden")
+        {
+            Data = { { "StatusCode", HttpStatusCode.Forbidden } }
+        };
+        
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<Company>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<object>(httpException));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ForbiddenException>(
+            () => _sut.GetCompanyAsync(companyId));
+        
+        exception.Message.Should().Contain("Forbidden");
+        exception.ErrorCode.Should().Be("FORBIDDEN");
+    }
+
+    [Fact]
+    public async Task CreateCompanyAsync_Should_Throw_InvalidRequestException_On_422()
+    {
+        // Arrange
+        var request = new CreateCompanyRequest { Name = "" }; // Invalid empty name
+        
+        var validationResponse = new
+        {
+            errors = new Dictionary<string, string[]>
+            {
+                { "name", new[] { "Name is required" } }
+            }
+        };
+
+        var httpException = new HttpRequestException("Unprocessable Entity")
+        {
+            Data = { 
+                { "StatusCode", HttpStatusCode.UnprocessableEntity },
+                { "ResponseBody", JsonSerializer.Serialize(validationResponse) }
+            }
+        };
+        
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<Company>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<object>(httpException));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidRequestException>(
+            () => _sut.CreateCompanyAsync(request));
+        
+        exception.ErrorCode.Should().Be("INVALID_REQUEST");
+        exception.Details.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetCompanyAsync_Should_Throw_RateLimitExceededException_On_429()
+    {
+        // Arrange
+        const int companyId = 123;
+        var httpException = new HttpRequestException("Too Many Requests")
+        {
+            Data = { 
+                { "StatusCode", HttpStatusCode.TooManyRequests },
+                { "RetryAfter", "60" }
+            }
+        };
+        
+        _mockRequestAdapter
+            .SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<Company>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<object>(httpException));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<RateLimitExceededException>(
+            () => _sut.GetCompanyAsync(companyId));
+        
+        exception.ErrorCode.Should().Be("RATE_LIMIT_EXCEEDED");
+        exception.RetryAfter.Should().Be(TimeSpan.FromSeconds(60));
+    }
+
+    #endregion
+
+    #region Dispose Tests
+
+    [Fact]
+    public void Dispose_Should_Dispose_Resources()
+    {
+        // Arrange
+        var disposableRequestAdapter = Substitute.For<IRequestAdapter, IDisposable>();
+        var generatedClient = new CoreClient(disposableRequestAdapter);
+        var client = new ProcoreSDK.Core.CoreClient(generatedClient, _mockTokenManager, _mockLogger);
+
+        // Act
+        client.Dispose();
+
+        // Assert
+        ((IDisposable)disposableRequestAdapter).Received(1).Dispose();
+    }
+
+    [Fact]
+    public void Dispose_Should_Be_Safe_To_Call_Multiple_Times()
+    {
+        // Arrange & Act & Assert
+        _sut.Dispose();
+        _sut.Dispose(); // Should not throw
+    }
+
+    #endregion
+
+    public void Dispose()
+    {
+        _sut?.Dispose();
+        _generatedClient?.Dispose();
+    }
+}

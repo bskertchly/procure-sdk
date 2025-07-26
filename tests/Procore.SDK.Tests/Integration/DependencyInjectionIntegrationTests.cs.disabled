@@ -1,0 +1,415 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.Kiota.Abstractions;
+using Procore.SDK.Extensions;
+using System.Net.Http;
+
+namespace Procore.SDK.Tests.Integration;
+
+/// <summary>
+/// Integration tests for complete DI setup and service resolution
+/// </summary>
+public class DependencyInjectionIntegrationTests : IDisposable
+{
+    private readonly ServiceCollection _services;
+    private readonly ConfigurationBuilder _configBuilder;
+    private ServiceProvider? _serviceProvider;
+
+    public DependencyInjectionIntegrationTests()
+    {
+        _services = new ServiceCollection();
+        _configBuilder = new ConfigurationBuilder();
+        _services.AddLogging();
+    }
+
+    public void Dispose()
+    {
+        _serviceProvider?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    [Fact]
+    public void CompleteSetup_ShouldResolveAllServices_WithoutErrors()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert - All services should be resolvable
+        AssertServiceCanBeResolved<ITokenStorage>();
+        AssertServiceCanBeResolved<ITokenManager>();
+        AssertServiceCanBeResolved<OAuthFlowHelper>();
+        AssertServiceCanBeResolved<ProcoreAuthHandler>();
+        AssertServiceCanBeResolved<IHttpClientFactory>();
+        AssertServiceCanBeResolved<IRequestAdapter>();
+        AssertServiceCanBeResolved<ICoreClient>();
+        AssertServiceCanBeResolved<IOptions<ProcoreAuthOptions>>();
+        AssertServiceCanBeResolved<IOptions<HttpClientOptions>>();
+        AssertServiceCanBeResolved<HealthCheckService>();
+        AssertServiceCanBeResolved<ProcoreApiHealthCheck>();
+    }
+
+    [Fact]
+    public void CompleteSetup_WithHostBuilder_ShouldWork()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        var host = Host.CreateDefaultBuilder()
+            .ConfigureServices((context, services) =>
+            {
+                services.AddProcoreSDK(configuration);
+            })
+            .Build();
+
+        using var serviceProvider = host.Services.CreateScope().ServiceProvider;
+
+        // Assert
+        var coreClient = serviceProvider.GetRequiredService<ICoreClient>();
+        var tokenManager = serviceProvider.GetRequiredService<ITokenManager>();
+        var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+
+        coreClient.Should().NotBeNull();
+        tokenManager.Should().NotBeNull();
+        httpClientFactory.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void CompleteSetup_ShouldCreateWorkingHttpClientChain()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var httpClientFactory = _serviceProvider.GetRequiredService<IHttpClientFactory>();
+        using var client = httpClientFactory.CreateClient("Procore");
+
+        client.Should().NotBeNull();
+        client.BaseAddress.Should().Be(new Uri("https://api.procore.com"));
+        client.Timeout.Should().Be(TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
+    public void CompleteSetup_ShouldCreateWorkingRequestAdapter()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var requestAdapter = _serviceProvider.GetRequiredService<IRequestAdapter>();
+        requestAdapter.Should().NotBeNull();
+        requestAdapter.Should().BeOfType<Microsoft.Kiota.Http.HttpClientLibrary.HttpClientRequestAdapter>();
+    }
+
+    [Fact]
+    public void CompleteSetup_ShouldCreateWorkingCoreClient()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        coreClient.Should().NotBeNull();
+        coreClient.Should().BeOfType<ProcoreCoreClient>();
+        coreClient.RawClient.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task CompleteSetup_HealthChecks_ShouldBeConfigured()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var healthCheckService = _serviceProvider.GetRequiredService<HealthCheckService>();
+        var healthReport = await healthCheckService.CheckHealthAsync();
+
+        healthReport.Should().NotBeNull();
+        healthReport.Entries.Should().ContainKey("procore-api");
+        
+        var procoreApiCheck = healthReport.Entries["procore-api"];
+        procoreApiCheck.Tags.Should().Contain("procore");
+        procoreApiCheck.Tags.Should().Contain("api");
+        procoreApiCheck.Tags.Should().Contain("connectivity");
+    }
+
+    [Fact]
+    public void CompleteSetup_MultipleScopes_ShouldWorkCorrectly()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        using var scope1 = _serviceProvider.CreateScope();
+        using var scope2 = _serviceProvider.CreateScope();
+
+        var client1 = scope1.ServiceProvider.GetRequiredService<ICoreClient>();
+        var client2 = scope2.ServiceProvider.GetRequiredService<ICoreClient>();
+
+        // Scoped services should be different instances
+        client1.Should().NotBeSameAs(client2);
+
+        var tokenManager1 = scope1.ServiceProvider.GetRequiredService<ITokenManager>();
+        var tokenManager2 = scope2.ServiceProvider.GetRequiredService<ITokenManager>();
+
+        // Singleton services should be the same instance
+        tokenManager1.Should().BeSameAs(tokenManager2);
+    }
+
+    [Fact]
+    public void CompleteSetup_ServiceLifetimes_ShouldBeCorrect()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+
+        // Assert
+        AssertServiceLifetime<ITokenStorage>(ServiceLifetime.Singleton);
+        AssertServiceLifetime<ITokenManager>(ServiceLifetime.Singleton);
+        AssertServiceLifetime<OAuthFlowHelper>(ServiceLifetime.Singleton);
+        AssertServiceLifetime<ProcoreAuthHandler>(ServiceLifetime.Singleton);
+        AssertServiceLifetime<IRequestAdapter>(ServiceLifetime.Singleton);
+        AssertServiceLifetime<ICoreClient>(ServiceLifetime.Scoped);
+    }
+
+    [Fact]
+    public void CompleteSetup_WithCustomConfiguration_ShouldOverrideDefaults()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration, 
+            auth => 
+            {
+                auth.TokenRefreshMargin = TimeSpan.FromMinutes(15);
+                auth.UsePkce = false;
+            },
+            http => 
+            {
+                http.Timeout = TimeSpan.FromMinutes(5);
+                http.MaxConnectionsPerServer = 25;
+            });
+
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var authOptions = _serviceProvider.GetRequiredService<IOptions<ProcoreAuthOptions>>().Value;
+        authOptions.TokenRefreshMargin.Should().Be(TimeSpan.FromMinutes(15));
+        authOptions.UsePkce.Should().BeFalse();
+
+        var httpOptions = _serviceProvider.GetRequiredService<IOptions<HttpClientOptions>>().Value;
+        httpOptions.Timeout.Should().Be(TimeSpan.FromMinutes(5));
+        httpOptions.MaxConnectionsPerServer.Should().Be(25);
+    }
+
+    [Fact]
+    public void CompleteSetup_ServiceDependencies_ShouldBeCorrectlyWired()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        // Verify that services can resolve their dependencies
+        var tokenManager = _serviceProvider.GetRequiredService<ITokenManager>();
+        var authHandler = _serviceProvider.GetRequiredService<ProcoreAuthHandler>();
+        var requestAdapter = _serviceProvider.GetRequiredService<IRequestAdapter>();
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+
+        // All should be resolvable without circular dependencies
+        tokenManager.Should().NotBeNull();
+        authHandler.Should().NotBeNull();
+        requestAdapter.Should().NotBeNull();
+        coreClient.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void CompleteSetup_WithMinimalConfiguration_ShouldWork()
+    {
+        // Arrange - Use simple overload
+        const string clientId = "test-client-id";
+        const string clientSecret = "test-client-secret";
+        const string redirectUri = "https://localhost:5001/callback";
+
+        // Act
+        _services.AddProcoreSDK(clientId, clientSecret, redirectUri, "read", "write");
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var authOptions = _serviceProvider.GetRequiredService<IOptions<ProcoreAuthOptions>>().Value;
+        authOptions.ClientId.Should().Be(clientId);
+        authOptions.ClientSecret.Should().Be(clientSecret);
+        authOptions.RedirectUri.Should().Be(redirectUri);
+        authOptions.Scopes.Should().BeEquivalentTo(new[] { "read", "write" });
+
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        coreClient.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void CompleteSetup_DisposalChain_ShouldWorkCorrectly()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        var requestAdapter = _serviceProvider.GetRequiredService<IRequestAdapter>();
+
+        // Assert - Should be able to dispose without errors
+        var coreClientDisposal = () => coreClient.Dispose();
+        coreClientDisposal.Should().NotThrow();
+
+        var requestAdapterDisposal = () => ((IDisposable)requestAdapter).Dispose();
+        requestAdapterDisposal.Should().NotThrow();
+
+        var serviceProviderDisposal = () => _serviceProvider.Dispose();
+        serviceProviderDisposal.Should().NotThrow();
+    }
+
+    [Fact]
+    public void CompleteSetup_MultipleCalls_ShouldBeIdempotent()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _services.AddProcoreSDK(configuration);
+        _services.AddProcoreSDK(configuration);
+
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert - Should still work correctly
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        var tokenManager = _serviceProvider.GetRequiredService<ITokenManager>();
+
+        coreClient.Should().NotBeNull();
+        tokenManager.Should().NotBeNull();
+
+        // Should not have duplicate registrations
+        var coreClientDescriptors = _services.Where(s => s.ServiceType == typeof(ICoreClient));
+        coreClientDescriptors.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void CompleteSetup_WithExistingServices_ShouldNotOverride()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+        var customTokenStorage = Substitute.For<ITokenStorage>();
+
+        // Act
+        _services.AddSingleton(customTokenStorage);
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var resolvedTokenStorage = _serviceProvider.GetRequiredService<ITokenStorage>();
+        resolvedTokenStorage.Should().BeSameAs(customTokenStorage);
+
+        // Other services should still be registered
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        coreClient.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void CompleteSetup_ServiceValidation_ShouldPassBuildValidation()
+    {
+        // Arrange
+        var configuration = CreateCompleteConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+
+        // Assert - BuildServiceProvider with validation should not throw
+        var serviceProviderOptions = new ServiceProviderOptions
+        {
+            ValidateScopes = true,
+            ValidateOnBuild = true
+        };
+
+        var act = () => _services.BuildServiceProvider(serviceProviderOptions);
+        act.Should().NotThrow();
+    }
+
+    private IConfiguration CreateCompleteConfiguration()
+    {
+        var configData = new Dictionary<string, string?>
+        {
+            {"ProcoreAuth:ClientId", "integration-test-client-id"},
+            {"ProcoreAuth:ClientSecret", "integration-test-client-secret"},
+            {"ProcoreAuth:RedirectUri", "https://localhost:5001/callback"},
+            {"ProcoreAuth:Scopes:0", "read"},
+            {"ProcoreAuth:Scopes:1", "write"},
+            {"ProcoreAuth:Scopes:2", "admin"},
+            {"ProcoreAuth:TokenRefreshMargin", "00:05:00"},
+            {"ProcoreAuth:UsePkce", "true"},
+            {"ProcoreAuth:AuthorizationEndpoint", "https://app.procore.com/oauth/authorize"},
+            {"ProcoreAuth:TokenEndpoint", "https://api.procore.com/oauth/token"},
+            {"ProcoreApi:BaseAddress", "https://api.procore.com"},
+            {"ProcoreApi:Timeout", "00:01:00"},
+            {"ProcoreApi:MaxConnectionsPerServer", "10"},
+            {"ProcoreApi:PooledConnectionLifetime", "00:15:00"},
+            {"ProcoreApi:PooledConnectionIdleTimeout", "00:02:00"}
+        };
+
+        return _configBuilder
+            .AddInMemoryCollection(configData)
+            .Build();
+    }
+
+    private void AssertServiceCanBeResolved<TService>()
+    {
+        var act = () => _serviceProvider!.GetRequiredService<TService>();
+        act.Should().NotThrow($"{typeof(TService).Name} should be resolvable");
+        
+        var service = _serviceProvider!.GetRequiredService<TService>();
+        service.Should().NotBeNull($"{typeof(TService).Name} should not be null");
+    }
+
+    private void AssertServiceLifetime<TService>(ServiceLifetime expectedLifetime)
+    {
+        var descriptor = _services.FirstOrDefault(s => s.ServiceType == typeof(TService));
+        descriptor.Should().NotBeNull($"{typeof(TService).Name} should be registered");
+        descriptor!.Lifetime.Should().Be(expectedLifetime, 
+            $"{typeof(TService).Name} should be registered as {expectedLifetime}");
+    }
+}

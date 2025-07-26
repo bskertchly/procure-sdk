@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Procore.SDK</PackageId>
+    <Description>Unified .NET SDK for Procore's construction management platform. Provides access to all Procore API resources through strongly-typed clients with automatic authentication, error handling, and retry logic.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Kiota.Abstractions" />
+    <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Procore.SDK.Shared\Procore.SDK.Shared.csproj" />
+    <!-- Temporarily disabled due to compilation issues with generated Kiota clients -->
+    <!-- <ProjectReference Include="..\Procore.SDK.Core\Procore.SDK.Core.csproj" /> -->
+    <!-- <ProjectReference Include="..\Procore.SDK.ProjectManagement\Procore.SDK.ProjectManagement.csproj" /> -->
+    <!-- <ProjectReference Include="..\Procore.SDK.QualitySafety\Procore.SDK.QualitySafety.csproj" /> -->
+    <!-- <ProjectReference Include="..\Procore.SDK.ConstructionFinancials\Procore.SDK.ConstructionFinancials.csproj" /> -->
+    <!-- <ProjectReference Include="..\Procore.SDK.FieldProductivity\Procore.SDK.FieldProductivity.csproj" /> -->
+    <!-- <ProjectReference Include="..\Procore.SDK.ResourceManagement\Procore.SDK.ResourceManagement.csproj" /> -->
+  </ItemGroup>
+
+</Project>

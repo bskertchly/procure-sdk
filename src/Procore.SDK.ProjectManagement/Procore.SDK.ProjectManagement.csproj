@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Procore.SDK.ProjectManagement</PackageId>
+    <Description>Procore SDK Project Management client for projects, workflows, tasks, and project assignments. Provides strongly-typed access to Procore's project management API resources.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Procore.SDK.Shared\Procore.SDK.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Kiota.Abstractions" />
+    <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Json" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Form" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Text" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Multipart" />
+  </ItemGroup>
+
+</Project>

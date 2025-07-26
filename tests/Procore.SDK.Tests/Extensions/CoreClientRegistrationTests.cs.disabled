@@ -1,0 +1,369 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Kiota.Abstractions;
+using Procore.SDK.Core;
+using Procore.SDK.Extensions;
+
+namespace Procore.SDK.Tests.Extensions;
+
+/// <summary>
+/// Tests for core client registration and dependency resolution
+/// </summary>
+public class CoreClientRegistrationTests : IDisposable
+{
+    private readonly ServiceCollection _services;
+    private readonly ConfigurationBuilder _configBuilder;
+    private ServiceProvider? _serviceProvider;
+
+    public CoreClientRegistrationTests()
+    {
+        _services = new ServiceCollection();
+        _configBuilder = new ConfigurationBuilder();
+        _services.AddLogging();
+    }
+
+    public void Dispose()
+    {
+        _serviceProvider?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    [Fact]
+    public void AddProcoreSDK_ShouldRegisterCoreClient()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        coreClient.Should().NotBeNull();
+        coreClient.Should().BeOfType<ProcoreCoreClient>();
+    }
+
+    [Fact]
+    public void AddProcoreSDK_ShouldRegisterCoreClient_AsScoped()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+
+        // Assert
+        var descriptor = _services.FirstOrDefault(s => s.ServiceType == typeof(ICoreClient));
+        descriptor.Should().NotBeNull();
+        descriptor!.Lifetime.Should().Be(ServiceLifetime.Scoped);
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldHaveCorrectDependencies()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        coreClient.Should().NotBeNull();
+
+        // Verify that all dependencies are resolvable
+        var requestAdapter = _serviceProvider.GetRequiredService<IRequestAdapter>();
+        requestAdapter.Should().NotBeNull();
+
+        var logger = _serviceProvider.GetService<ILogger<ProcoreCoreClient>>();
+        // Logger is optional, so it might be null if not configured
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldAllowCustomImplementation()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+        var customCoreClient = Substitute.For<ICoreClient>();
+
+        // Act
+        _services.AddScoped<ICoreClient>(_ => customCoreClient);
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var resolvedClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        resolvedClient.Should().BeSameAs(customCoreClient);
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldCreateNewInstancePerScope()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        using var scope1 = _serviceProvider.CreateScope();
+        using var scope2 = _serviceProvider.CreateScope();
+
+        var client1 = scope1.ServiceProvider.GetRequiredService<ICoreClient>();
+        var client2 = scope2.ServiceProvider.GetRequiredService<ICoreClient>();
+
+        client1.Should().NotBeNull();
+        client2.Should().NotBeNull();
+        client1.Should().NotBeSameAs(client2);
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldReuseWithinSameScope()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        using var scope = _serviceProvider.CreateScope();
+        var client1 = scope.ServiceProvider.GetRequiredService<ICoreClient>();
+        var client2 = scope.ServiceProvider.GetRequiredService<ICoreClient>();
+
+        client1.Should().BeSameAs(client2);
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldBeDisposable()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        coreClient.Should().BeAssignableTo<IDisposable>();
+
+        // Verify it can be disposed without throwing
+        var act = () => coreClient.Dispose();
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldHaveRawClientAccess()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        var rawClient = coreClient.RawClient;
+
+        rawClient.Should().NotBeNull();
+        // The raw client type depends on the generated Kiota client
+        // For now, we just verify it exists and is not null
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldImplementAllRequiredMethods()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        
+        // Verify interface compliance by checking method availability
+        var interfaceType = typeof(ICoreClient);
+        var implementationType = coreClient.GetType();
+
+        // Company operations
+        implementationType.Should().BeAssignableTo<ICoreClient>();
+        
+        // Verify specific methods exist (this ensures the interface is properly implemented)
+        var methods = interfaceType.GetMethods();
+        methods.Should().Contain(m => m.Name == "GetCompaniesAsync");
+        methods.Should().Contain(m => m.Name == "GetCompanyAsync");
+        methods.Should().Contain(m => m.Name == "CreateCompanyAsync");
+        methods.Should().Contain(m => m.Name == "UpdateCompanyAsync");
+        methods.Should().Contain(m => m.Name == "DeleteCompanyAsync");
+        
+        // User operations
+        methods.Should().Contain(m => m.Name == "GetUsersAsync");
+        methods.Should().Contain(m => m.Name == "GetUserAsync");
+        methods.Should().Contain(m => m.Name == "CreateUserAsync");
+        methods.Should().Contain(m => m.Name == "UpdateUserAsync");
+        methods.Should().Contain(m => m.Name == "DeactivateUserAsync");
+        
+        // Document operations
+        methods.Should().Contain(m => m.Name == "GetDocumentsAsync");
+        methods.Should().Contain(m => m.Name == "GetDocumentAsync");
+        methods.Should().Contain(m => m.Name == "UploadDocumentAsync");
+        methods.Should().Contain(m => m.Name == "UpdateDocumentAsync");
+        methods.Should().Contain(m => m.Name == "DeleteDocumentAsync");
+        
+        // Custom field operations
+        methods.Should().Contain(m => m.Name == "GetCustomFieldsAsync");
+        methods.Should().Contain(m => m.Name == "GetCustomFieldAsync");
+        methods.Should().Contain(m => m.Name == "CreateCustomFieldAsync");
+        methods.Should().Contain(m => m.Name == "UpdateCustomFieldAsync");
+        methods.Should().Contain(m => m.Name == "DeleteCustomFieldAsync");
+        
+        // Convenience methods
+        methods.Should().Contain(m => m.Name == "GetCurrentUserAsync");
+        methods.Should().Contain(m => m.Name == "GetCompanyByNameAsync");
+        methods.Should().Contain(m => m.Name == "SearchUsersAsync");
+        methods.Should().Contain(m => m.Name == "GetDocumentsByTypeAsync");
+        
+        // Pagination support
+        methods.Should().Contain(m => m.Name == "GetCompaniesPagedAsync");
+        methods.Should().Contain(m => m.Name == "GetUsersPagedAsync");
+        methods.Should().Contain(m => m.Name == "GetDocumentsPagedAsync");
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldResolveWithoutErrors()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert - Should be able to create the client without errors
+        var act = () => _serviceProvider.GetRequiredService<ICoreClient>();
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldUseRequestAdapter()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        var requestAdapter = _serviceProvider.GetRequiredService<IRequestAdapter>();
+
+        coreClient.Should().NotBeNull();
+        requestAdapter.Should().NotBeNull();
+
+        // Both should be resolvable, indicating proper dependency injection setup
+        coreClient.Should().BeOfType<ProcoreCoreClient>();
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldHandleMultipleRegistrations()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _services.AddProcoreSDK(configuration); // Add again
+
+        // Assert - Should not have duplicate registrations
+        var coreClientDescriptors = _services.Where(s => s.ServiceType == typeof(ICoreClient));
+        coreClientDescriptors.Should().HaveCount(1, "Should not register duplicate core client services");
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldSupportDependencyInjectionPatterns()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert - Test common DI patterns
+        
+        // 1. Direct resolution
+        var directClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        directClient.Should().NotBeNull();
+
+        // 2. Optional resolution
+        var optionalClient = _serviceProvider.GetService<ICoreClient>();
+        optionalClient.Should().NotBeNull();
+        optionalClient.Should().BeSameAs(directClient);
+
+        // 3. Enumerable resolution (should return one implementation)
+        var allClients = _serviceProvider.GetServices<ICoreClient>();
+        allClients.Should().HaveCount(1);
+        allClients.First().Should().BeSameAs(directClient);
+    }
+
+    [Fact]
+    public void AddProcoreSDK_CoreClient_ShouldWorkWithServiceProvider()
+    {
+        // Arrange
+        var configuration = CreateTestConfiguration();
+
+        // Act
+        _services.AddProcoreSDK(configuration);
+        _serviceProvider = _services.BuildServiceProvider();
+
+        // Assert
+        // Test that the client can be injected into other services
+        _services.AddScoped<TestService>();
+        using var newServiceProvider = _services.BuildServiceProvider();
+
+        var testService = newServiceProvider.GetRequiredService<TestService>();
+        testService.Should().NotBeNull();
+        testService.CoreClient.Should().NotBeNull();
+        testService.CoreClient.Should().BeOfType<ProcoreCoreClient>();
+    }
+
+    private IConfiguration CreateTestConfiguration()
+    {
+        var configData = new Dictionary<string, string?>
+        {
+            {"ProcoreAuth:ClientId", "test-client-id"},
+            {"ProcoreAuth:ClientSecret", "test-client-secret"},
+            {"ProcoreAuth:RedirectUri", "https://localhost:5001/callback"},
+            {"ProcoreAuth:Scopes:0", "read"},
+            {"ProcoreAuth:Scopes:1", "write"},
+            {"ProcoreApi:BaseAddress", "https://api.procore.com"},
+            {"ProcoreApi:Timeout", "00:01:00"}
+        };
+
+        return _configBuilder
+            .AddInMemoryCollection(configData)
+            .Build();
+    }
+
+    /// <summary>
+    /// Test service to verify dependency injection works properly
+    /// </summary>
+    private class TestService
+    {
+        public ICoreClient CoreClient { get; }
+
+        public TestService(ICoreClient coreClient)
+        {
+            CoreClient = coreClient;
+        }
+    }
+}

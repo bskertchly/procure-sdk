@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Procore.SDK.Shared</PackageId>
+    <Description>Shared authentication, HTTP infrastructure, and common models for the Procore .NET SDK. Provides OAuth 2.0 with PKCE authentication flow and token management.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="Microsoft.Kiota.Abstractions" />
+    <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Json" />
+    <PackageReference Include="Polly" />
+    <PackageReference Include="Polly.Extensions.Http" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,425 @@
+using Microsoft.Kiota.Http.HttpClientLibrary;
+using Procore.SDK.Core.Models;
+
+namespace Procore.SDK.Core.Tests.Authentication;
+
+/// <summary>
+/// Tests for integration between the CoreClient and authentication infrastructure.
+/// These tests verify that the CoreClient properly integrates with the token management
+/// system and handles authentication scenarios correctly.
+/// </summary>
+public class AuthenticationIntegrationTests : IDisposable
+{
+    private readonly ITokenManager _mockTokenManager;
+    private readonly ILogger<CoreClient> _mockLogger;
+    private readonly HttpClient _httpClient;
+    private readonly TestableHttpMessageHandler _testHandler;
+    private readonly IRequestAdapter _requestAdapter;
+    private readonly CoreClient _generatedClient;
+    private readonly ProcoreSDK.Core.CoreClient _sut;
+
+    public AuthenticationIntegrationTests()
+    {
+        _mockTokenManager = Substitute.For<ITokenManager>();
+        _mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        _testHandler = new TestableHttpMessageHandler();
+        _httpClient = new HttpClient(_testHandler);
+        _requestAdapter = new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: _httpClient);
+        _generatedClient = new CoreClient(_requestAdapter);
+        _sut = new ProcoreSDK.Core.CoreClient(_generatedClient, _mockTokenManager, _mockLogger);
+    }
+
+    #region Token Management Integration Tests
+
+    [Fact]
+    public async Task CoreClient_Should_Request_Token_Before_API_Calls()
+    {
+        // Arrange
+        const string expectedToken = "valid_access_token";
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns(expectedToken);
+
+        _testHandler.SetupResponse(HttpStatusCode.OK, """{"id": 123, "name": "Test Company"}""");
+
+        // Act
+        await _sut.GetCompanyAsync(123);
+
+        // Assert
+        await _mockTokenManager.Received(1).GetAccessTokenAsync(Arg.Any<CancellationToken>());
+        
+        var sentRequest = _testHandler.GetSentRequests().First();
+        sentRequest.Headers.Authorization?.Scheme.Should().Be("Bearer");
+        sentRequest.Headers.Authorization?.Parameter.Should().Be(expectedToken);
+    }
+
+    [Fact]
+    public async Task CoreClient_Should_Handle_Token_Refresh_Automatically()
+    {
+        // Arrange
+        var firstToken = "expired_token";
+        var refreshedToken = "refreshed_token";
+
+        // Setup token manager to return expired token first, then refreshed token
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns(firstToken, refreshedToken);
+
+        // Setup HTTP responses: first call returns 401, second call succeeds
+        _testHandler.SetupSequentialResponses(
+            (HttpStatusCode.Unauthorized, """{"error": "Token expired"}"""),
+            (HttpStatusCode.OK, """{"id": 123, "name": "Test Company"}""")
+        );
+
+        // Act
+        var result = await _sut.GetCompanyAsync(123);
+
+        // Assert
+        await _mockTokenManager.Received(2).GetAccessTokenAsync(Arg.Any<CancellationToken>());
+        
+        var requests = _testHandler.GetSentRequests();
+        requests.Should().HaveCount(2);
+        
+        // First request with expired token
+        requests[0].Headers.Authorization?.Parameter.Should().Be(firstToken);
+        
+        // Second request with refreshed token
+        requests[1].Headers.Authorization?.Parameter.Should().Be(refreshedToken);
+        
+        result.Should().NotBeNull();
+        result.Id.Should().Be(123);
+    }
+
+    [Fact]
+    public async Task CoreClient_Should_Throw_UnauthorizedException_When_Token_Refresh_Fails()
+    {
+        // Arrange
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<string>(new UnauthorizedAccessException("Unable to refresh token")));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<UnauthorizedException>(
+            () => _sut.GetCompanyAsync(123));
+        
+        exception.Message.Should().Contain("Unable to refresh token");
+        exception.ErrorCode.Should().Be("UNAUTHORIZED");
+    }
+
+    [Fact]
+    public async Task CoreClient_Should_Include_Token_In_All_Requests()
+    {
+        // Arrange
+        const string accessToken = "test_access_token";
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns(accessToken);
+
+        _testHandler.SetupResponse(HttpStatusCode.OK, """[{"id": 1}, {"id": 2}]""");
+
+        // Act
+        await _sut.GetCompaniesAsync();
+
+        // Assert
+        var sentRequest = _testHandler.GetSentRequests().First();
+        sentRequest.Headers.Authorization.Should().NotBeNull();
+        sentRequest.Headers.Authorization!.Scheme.Should().Be("Bearer");
+        sentRequest.Headers.Authorization!.Parameter.Should().Be(accessToken);
+    }
+
+    #endregion
+
+    #region Authentication Error Handling Tests
+
+    [Fact]
+    public async Task CoreClient_Should_Map_401_To_UnauthorizedException()
+    {
+        // Arrange
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns("valid_token");
+
+        _testHandler.SetupResponse(HttpStatusCode.Unauthorized, 
+            """{"error": "invalid_token", "error_description": "The access token is invalid"}""");
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<UnauthorizedException>(
+            () => _sut.GetCompanyAsync(123));
+        
+        exception.ErrorCode.Should().Be("UNAUTHORIZED");
+        exception.Message.Should().Contain("invalid_token");
+    }
+
+    [Fact]
+    public async Task CoreClient_Should_Map_403_To_ForbiddenException()
+    {
+        // Arrange
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns("valid_token");
+
+        _testHandler.SetupResponse(HttpStatusCode.Forbidden, 
+            """{"error": "insufficient_scope", "error_description": "Insufficient permissions"}""");
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ForbiddenException>(
+            () => _sut.GetCompanyAsync(123));
+        
+        exception.ErrorCode.Should().Be("FORBIDDEN");
+        exception.Message.Should().Contain("insufficient_scope");
+    }
+
+    #endregion
+
+    #region Current User Tests
+
+    [Fact]
+    public async Task GetCurrentUserAsync_Should_Use_Token_To_Identify_User()
+    {
+        // Arrange
+        const string accessToken = "user_token_123";
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns(accessToken);
+
+        // Mock the /me endpoint response
+        _testHandler.SetupResponse(HttpStatusCode.OK, 
+            """{"id": 456, "email": "current@user.com", "first_name": "Current", "last_name": "User"}""");
+
+        // Act
+        var result = await _sut.GetCurrentUserAsync();
+
+        // Assert
+        await _mockTokenManager.Received(1).GetAccessTokenAsync(Arg.Any<CancellationToken>());
+        
+        var sentRequest = _testHandler.GetSentRequests().First();
+        sentRequest.Headers.Authorization?.Parameter.Should().Be(accessToken);
+        sentRequest.RequestUri?.AbsolutePath.Should().Contain("/me");
+        
+        result.Should().NotBeNull();
+        result.Id.Should().Be(456);
+        result.Email.Should().Be("current@user.com");
+    }
+
+    [Fact]
+    public async Task GetCurrentUserAsync_Should_Cache_User_Info_Within_Session()
+    {
+        // Arrange
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns("cached_token");
+
+        _testHandler.SetupResponse(HttpStatusCode.OK, 
+            """{"id": 789, "email": "cached@user.com", "first_name": "Cached", "last_name": "User"}""");
+
+        // Act - Call twice
+        var result1 = await _sut.GetCurrentUserAsync();
+        var result2 = await _sut.GetCurrentUserAsync();
+
+        // Assert
+        // Should only make one HTTP request due to caching
+        _testHandler.GetSentRequests().Should().HaveCount(1);
+        
+        result1.Should().NotBeNull();
+        result2.Should().NotBeNull();
+        result1.Id.Should().Be(result2.Id);
+        result1.Email.Should().Be(result2.Email);
+    }
+
+    #endregion
+
+    #region Token Validation Tests
+
+    [Fact]
+    public async Task CoreClient_Should_Validate_Token_Before_Using()
+    {
+        // Arrange
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<string>(null!)); // Null token
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<UnauthorizedException>(
+            () => _sut.GetCompanyAsync(123));
+        
+        exception.Message.Should().Contain("No valid access token available");
+    }
+
+    [Fact]
+    public async Task CoreClient_Should_Handle_Empty_Token()
+    {
+        // Arrange
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns(string.Empty);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<UnauthorizedException>(
+            () => _sut.GetCompanyAsync(123));
+        
+        exception.Message.Should().Contain("No valid access token available");
+    }
+
+    [Fact]
+    public async Task CoreClient_Should_Handle_Whitespace_Token()
+    {
+        // Arrange
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns("   ");
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<UnauthorizedException>(
+            () => _sut.GetCompanyAsync(123));
+        
+        exception.Message.Should().Contain("No valid access token available");
+    }
+
+    #endregion
+
+    #region Concurrent Request Tests
+
+    [Fact]
+    public async Task CoreClient_Should_Handle_Concurrent_Requests_With_Same_Token()
+    {
+        // Arrange
+        const string sharedToken = "shared_access_token";
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns(sharedToken);
+
+        _testHandler.SetupResponse(HttpStatusCode.OK, """[{"id": 1}]""");
+
+        // Act - Make multiple concurrent requests
+        var tasks = Enumerable.Range(1, 5)
+            .Select(_ => _sut.GetCompaniesAsync())
+            .ToArray();
+
+        var results = await Task.WhenAll(tasks);
+
+        // Assert
+        await _mockTokenManager.Received(5).GetAccessTokenAsync(Arg.Any<CancellationToken>());
+        
+        var requests = _testHandler.GetSentRequests();
+        requests.Should().HaveCount(5);
+        requests.Should().AllSatisfy(r => 
+            r.Headers.Authorization?.Parameter.Should().Be(sharedToken));
+        
+        results.Should().AllSatisfy(r => r.Should().NotBeNull());
+    }
+
+    #endregion
+
+    #region Cancellation Token Tests
+
+    [Fact]
+    public async Task CoreClient_Should_Respect_Cancellation_Token_In_Authentication()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromMilliseconds(100));
+
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns(async (callInfo) =>
+            {
+                var token = callInfo.Arg<CancellationToken>();
+                await Task.Delay(500, token); // Longer than cancellation timeout
+                return "token";
+            });
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => _sut.GetCompanyAsync(123, cts.Token));
+    }
+
+    [Fact]
+    public async Task CoreClient_Should_Pass_Cancellation_Token_To_TokenManager()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        var cancellationToken = cts.Token;
+
+        _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
+            .Returns("valid_token");
+
+        _testHandler.SetupResponse(HttpStatusCode.OK, """{"id": 123}""");
+
+        // Act
+        await _sut.GetCompanyAsync(123, cancellationToken);
+
+        // Assert
+        await _mockTokenManager.Received(1).GetAccessTokenAsync(cancellationToken);
+    }
+
+    #endregion
+
+    public void Dispose()
+    {
+        _sut?.Dispose();
+        _generatedClient?.Dispose();
+        _httpClient?.Dispose();
+        _testHandler?.Dispose();
+    }
+}
+
+/// <summary>
+/// Test helper for mocking HTTP responses in authentication tests.
+/// </summary>
+public class TestableHttpMessageHandler : HttpMessageHandler
+{
+    private readonly Queue<(HttpStatusCode StatusCode, string Content)> _responses = new();
+    private readonly List<HttpRequestMessage> _sentRequests = new();
+
+    public void SetupResponse(HttpStatusCode statusCode, string content)
+    {
+        _responses.Enqueue((statusCode, content));
+    }
+
+    public void SetupSequentialResponses(params (HttpStatusCode StatusCode, string Content)[] responses)
+    {
+        foreach (var response in responses)
+        {
+            _responses.Enqueue(response);
+        }
+    }
+
+    public List<HttpRequestMessage> GetSentRequests() => _sentRequests.ToList();
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        _sentRequests.Add(CloneRequest(request));
+
+        if (_responses.Count == 0)
+        {
+            // Default response if no specific response is configured
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"default": "response"}""", System.Text.Encoding.UTF8, "application/json")
+            });
+        }
+
+        var (statusCode, content) = _responses.Dequeue();
+        var response = new HttpResponseMessage(statusCode);
+
+        if (!string.IsNullOrEmpty(content))
+        {
+            response.Content = new StringContent(content, System.Text.Encoding.UTF8, "application/json");
+        }
+
+        return Task.FromResult(response);
+    }
+
+    private static HttpRequestMessage CloneRequest(HttpRequestMessage original)
+    {
+        var clone = new HttpRequestMessage(original.Method, original.RequestUri)
+        {
+            Version = original.Version
+        };
+
+        // Copy headers
+        foreach (var header in original.Headers)
+        {
+            clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+
+        // Copy content headers if content exists
+        if (original.Content != null)
+        {
+            foreach (var header in original.Content.Headers)
+            {
+                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+        }
+
+        return clone;
+    }
+}

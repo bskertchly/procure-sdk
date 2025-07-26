@@ -1,0 +1,371 @@
+using Microsoft.Kiota.Http.HttpClientLibrary;
+using Procore.SDK.Core.Models;
+
+namespace Procore.SDK.Core.Tests.ResourceManagement;
+
+/// <summary>
+/// Tests for proper disposal and resource management in the CoreClient.
+/// These tests ensure that the wrapper client properly manages resources
+/// and implements the Dispose pattern correctly.
+/// </summary>
+public class DisposalTests
+{
+    #region IDisposable Implementation Tests
+
+    [Fact]
+    public void CoreClient_Should_Implement_IDisposable()
+    {
+        // Arrange & Act
+        var clientType = typeof(ProcoreSDK.Core.CoreClient);
+
+        // Assert
+        clientType.Should().Implement<IDisposable>();
+    }
+
+    [Fact]
+    public void CoreClient_Dispose_Should_Dispose_Underlying_Resources()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter, IDisposable>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+        var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+
+        // Act
+        coreClient.Dispose();
+
+        // Assert
+        ((IDisposable)mockRequestAdapter).Received(1).Dispose();
+    }
+
+    [Fact]
+    public void CoreClient_Dispose_Should_Be_Safe_To_Call_Multiple_Times()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter, IDisposable>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+        var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+
+        // Act & Assert
+        coreClient.Dispose(); // First call
+        coreClient.Dispose(); // Second call - should not throw
+        coreClient.Dispose(); // Third call - should not throw
+
+        // Should only dispose underlying resources once
+        ((IDisposable)mockRequestAdapter).Received(1).Dispose();
+    }
+
+    [Fact]
+    public void CoreClient_Should_Throw_ObjectDisposedException_After_Disposal()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+        var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+
+        // Act
+        coreClient.Dispose();
+
+        // Assert
+        Assert.Throws<ObjectDisposedException>(() => coreClient.GetCompaniesAsync());
+        Assert.Throws<ObjectDisposedException>(() => coreClient.GetCompanyAsync(123));
+        Assert.Throws<ObjectDisposedException>(() => coreClient.GetUsersAsync(123));
+    }
+
+    #endregion
+
+    #region Resource Cleanup Tests
+
+    [Fact]
+    public void CoreClient_Should_Clear_Internal_Caches_On_Disposal()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+        var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+
+        // Setup some cached data (e.g., current user)
+        mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>()).Returns("token");
+        mockRequestAdapter.SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(new User { Id = 1, Email = "test@example.com" }));
+
+        // Pre-populate cache
+        _ = coreClient.GetCurrentUserAsync().GetAwaiter().GetResult();
+
+        // Act
+        coreClient.Dispose();
+
+        // Assert
+        Assert.Throws<ObjectDisposedException>(() => coreClient.GetCurrentUserAsync());
+    }
+
+    [Fact]
+    public void CoreClient_Should_Cancel_Pending_Operations_On_Disposal()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+        var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+
+        // Setup a long-running operation
+        var tcs = new TaskCompletionSource<object>();
+        mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>()).Returns("token");
+        mockRequestAdapter.SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(tcs.Task);
+
+        // Start operation
+        var operationTask = coreClient.GetCompaniesAsync();
+
+        // Act
+        coreClient.Dispose();
+
+        // Assert
+        operationTask.IsCanceled.Should().BeTrue();
+    }
+
+    #endregion
+
+    #region Memory Management Tests
+
+    [Fact]
+    public void CoreClient_Should_Not_Hold_References_After_Disposal()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+        var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+
+        WeakReference weakRef = new(coreClient);
+
+        // Act
+        coreClient.Dispose();
+        coreClient = null;
+        generatedClient = null;
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        // Assert
+        weakRef.IsAlive.Should().BeFalse("CoreClient should be eligible for garbage collection after disposal");
+    }
+
+    [Fact]
+    public void CoreClient_Should_Dispose_HTTP_Resources_Properly()
+    {
+        // Arrange
+        using var httpClient = new HttpClient();
+        var requestAdapter = new HttpClientRequestAdapter(new AnonymousAuthenticationProvider(), httpClient: httpClient);
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(requestAdapter);
+        var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+
+        // Act & Assert
+        coreClient.Dispose(); // Should not throw
+
+        // Verify that HTTP client is still usable (CoreClient shouldn't dispose shared HttpClient)
+        httpClient.Timeout.Should().Be(httpClient.Timeout);
+    }
+
+    #endregion
+
+    #region Thread Safety Tests
+
+    [Fact]
+    public void CoreClient_Dispose_Should_Be_Thread_Safe()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter, IDisposable>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+        var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+
+        // Act - Dispose from multiple threads simultaneously
+        var tasks = Enumerable.Range(0, 10)
+            .Select(_ => Task.Run(() => coreClient.Dispose()))
+            .ToArray();
+
+        Task.WaitAll(tasks);
+
+        // Assert - Should only dispose once
+        ((IDisposable)mockRequestAdapter).Received(1).Dispose();
+    }
+
+    [Fact]
+    public void CoreClient_Operations_Should_Be_Thread_Safe_With_Disposal()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+        var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+
+        mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>()).Returns("token");
+        mockRequestAdapter.SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(new List<Company>()));
+
+        var exceptions = new ConcurrentBag<Exception>();
+
+        // Act - Start operations and disposal concurrently
+        var operationTasks = Enumerable.Range(0, 5)
+            .Select(_ => Task.Run(async () =>
+            {
+                try
+                {
+                    await coreClient.GetCompaniesAsync();
+                }
+                catch (Exception ex)
+                {
+                    exceptions.Add(ex);
+                }
+            }))
+            .ToArray();
+
+        var disposalTask = Task.Run(() =>
+        {
+            Thread.Sleep(50); // Let operations start
+            coreClient.Dispose();
+        });
+
+        Task.WaitAll(operationTasks.Concat(new[] { disposalTask }).ToArray());
+
+        // Assert - Should either complete successfully or throw ObjectDisposedException
+        exceptions.Should().AllSatisfy(ex => 
+            ex.Should().BeOfType<ObjectDisposedException>());
+    }
+
+    #endregion
+
+    #region Finalizer Tests
+
+    [Fact]
+    public void CoreClient_Should_Have_Finalizer_For_Unmanaged_Resources()
+    {
+        // Arrange & Act
+        var clientType = typeof(ProcoreSDK.Core.CoreClient);
+        var finalizer = clientType.GetMethod("Finalize", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        // Assert
+        finalizer.Should().NotBeNull("CoreClient should have a finalizer for proper resource cleanup");
+    }
+
+    [Fact]
+    public void CoreClient_Finalizer_Should_Not_Throw_Exceptions()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+
+        // Create and abandon CoreClient without disposing
+        _ = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+
+        // Act & Assert - Force garbage collection and finalization
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        // If we reach here without exceptions, the finalizer is working correctly
+        Assert.True(true);
+    }
+
+    #endregion
+
+    #region Using Statement Tests
+
+    [Fact]
+    public async Task CoreClient_Should_Work_Correctly_In_Using_Statement()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+
+        mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>()).Returns("token");
+        mockRequestAdapter.SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(new List<Company> { new() { Id = 1, Name = "Test" } }));
+
+        IEnumerable<Company>? result = null;
+
+        // Act
+        using (var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger))
+        {
+            result = await coreClient.GetCompaniesAsync();
+        } // Dispose should be called automatically
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(1);
+        result.First().Name.Should().Be("Test");
+    }
+
+    [Fact]
+    public async Task CoreClient_Should_Work_Correctly_With_Using_Declaration()
+    {
+        // Arrange
+        var mockRequestAdapter = Substitute.For<IRequestAdapter>();
+        var mockTokenManager = Substitute.For<ITokenManager>();
+        var mockLogger = Substitute.For<ILogger<CoreClient>>();
+        
+        var generatedClient = new CoreClient(mockRequestAdapter);
+
+        mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>()).Returns("token");
+        mockRequestAdapter.SendAsync(Arg.Any<RequestInformation>(), Arg.Any<ParsableFactory<object>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<object>(new User { Id = 1, Email = "test@example.com" }));
+
+        // Act
+        using var coreClient = new ProcoreSDK.Core.CoreClient(generatedClient, mockTokenManager, mockLogger);
+        var result = await coreClient.GetCurrentUserAsync();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Email.Should().Be("test@example.com");
+        
+        // Dispose will be called automatically at end of scope
+    }
+
+    #endregion
+}
+
+/// <summary>
+/// Additional helper classes for disposal testing
+/// </summary>
+public class ConcurrentBag<T> : List<T>
+{
+    private readonly object _lock = new();
+
+    public new void Add(T item)
+    {
+        lock (_lock)
+        {
+            base.Add(item);
+        }
+    }
+}

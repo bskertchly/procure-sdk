@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Procore.SDK.ConstructionFinancials</PackageId>
+    <Description>Procore SDK Construction Financials client for contracts, purchase orders, budgets, and financial management. Provides strongly-typed access to Procore's financial API resources.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Procore.SDK.Shared\Procore.SDK.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Kiota.Abstractions" />
+    <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Json" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Form" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Text" />
+    <PackageReference Include="Microsoft.Kiota.Serialization.Multipart" />
+  </ItemGroup>
+
+</Project>
