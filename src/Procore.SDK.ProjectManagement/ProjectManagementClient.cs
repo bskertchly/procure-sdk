@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Kiota.Abstractions;
 using Procore.SDK.ProjectManagement.Models;
+using Procore.SDK.Core.Models;
+using Procore.SDK.Core.ErrorHandling;
+using Procore.SDK.Core.Logging;
 
 namespace Procore.SDK.ProjectManagement;
 
@@ -18,6 +21,8 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
 {
     private readonly Procore.SDK.ProjectManagement.ProjectManagementClient _generatedClient;
     private readonly ILogger<ProcoreProjectManagementClient>? _logger;
+    private readonly ErrorMapper? _errorMapper;
+    private readonly StructuredLogger? _structuredLogger;
     private bool _disposed;
 
     /// <summary>
@@ -30,11 +35,87 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// </summary>
     /// <param name="requestAdapter">The request adapter to use for HTTP communication.</param>
     /// <param name="logger">Optional logger for diagnostic information.</param>
-    public ProcoreProjectManagementClient(IRequestAdapter requestAdapter, ILogger<ProcoreProjectManagementClient>? logger = null)
+    /// <param name="errorMapper">Optional error mapper for exception handling.</param>
+    /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
+    public ProcoreProjectManagementClient(
+        IRequestAdapter requestAdapter, 
+        ILogger<ProcoreProjectManagementClient>? logger = null,
+        ErrorMapper? errorMapper = null,
+        StructuredLogger? structuredLogger = null)
     {
         _generatedClient = new Procore.SDK.ProjectManagement.ProjectManagementClient(requestAdapter);
         _logger = logger;
+        _errorMapper = errorMapper;
+        _structuredLogger = structuredLogger;
     }
+
+    #region Private Helper Methods
+
+    /// <summary>
+    /// Executes an operation with proper error handling and logging.
+    /// </summary>
+    private async Task<T> ExecuteWithResilienceAsync<T>(
+        Func<Task<T>> operation,
+        string operationName,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        correlationId ??= Guid.NewGuid().ToString();
+        
+        using var operationScope = _structuredLogger?.BeginOperation(operationName, correlationId);
+        
+        try
+        {
+            return await operation();
+        }
+        catch (HttpRequestException ex)
+        {
+            var mappedException = _errorMapper?.MapHttpException(ex, correlationId) ?? 
+                new ProcoreCoreException(ex.Message, "HTTP_ERROR", null, correlationId);
+            
+            _structuredLogger?.LogError(mappedException, operationName, correlationId, 
+                "HTTP error in operation {Operation}", operationName);
+            
+            throw mappedException;
+        }
+        catch (TaskCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        {
+            _structuredLogger?.LogWarning(operationName, correlationId,
+                "Operation {Operation} was cancelled", operationName);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            var wrappedException = new ProcoreCoreException(
+                $"Unexpected error in {operationName}: {ex.Message}", 
+                "UNEXPECTED_ERROR", 
+                null, 
+                correlationId);
+            
+            _structuredLogger?.LogError(wrappedException, operationName, correlationId,
+                "Unexpected error in operation {Operation}", operationName);
+            
+            throw wrappedException;
+        }
+    }
+
+    /// <summary>
+    /// Executes an operation with proper error handling and logging (void return).
+    /// </summary>
+    private async Task ExecuteWithResilienceAsync(
+        Func<Task> operation,
+        string operationName,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        await ExecuteWithResilienceAsync(async () =>
+        {
+            await operation();
+            return true; // Return a dummy value
+        }, operationName, correlationId, cancellationToken);
+    }
+
+    #endregion
 
     #region Project Operations
 
@@ -46,18 +127,18 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <returns>A collection of projects.</returns>
     public async Task<IEnumerable<Project>> GetProjectsAsync(int companyId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting projects for company {CompanyId}", companyId);
-            
-            // Placeholder implementation
-            return Enumerable.Empty<Project>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get projects for company {CompanyId}", companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting projects for company {CompanyId}", companyId);
+                
+                // TODO: Replace with actual implementation using generated client
+                // This is currently a placeholder implementation
+                return Enumerable.Empty<Project>();
+            },
+            $"GetProjects-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -103,33 +184,33 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
-        {
-            _logger?.LogDebug("Creating project {ProjectName} for company {CompanyId}", request.Name, companyId);
-            
-            // Placeholder implementation
-            return new Project 
-            { 
-                Id = 1,
-                CompanyId = companyId,
-                Name = request.Name,
-                Description = request.Description,
-                StartDate = request.StartDate,
-                EndDate = request.EndDate,
-                Budget = request.Budget,
-                ProjectType = request.ProjectType,
-                Status = ProjectStatus.Planning,
-                Phase = ProjectPhase.PreConstruction,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to create project {ProjectName} for company {CompanyId}", request.Name, companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Creating project {ProjectName} for company {CompanyId}", request.Name, companyId);
+                
+                // TODO: Replace with actual implementation using generated client
+                // This is currently a placeholder implementation
+                return new Project 
+                { 
+                    Id = 1,
+                    CompanyId = companyId,
+                    Name = request.Name,
+                    Description = request.Description,
+                    StartDate = request.StartDate,
+                    EndDate = request.EndDate,
+                    Budget = request.Budget,
+                    ProjectType = request.ProjectType,
+                    Status = ProjectStatus.Planning,
+                    Phase = ProjectPhase.PreConstruction,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+            },
+            $"CreateProject-{request.Name}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
