@@ -1,3 +1,5 @@
+using FluentAssertions;
+using FluentAssertions.Types;
 using Procore.SDK.ProjectManagement.Tests.Models;
 using System.Reflection;
 

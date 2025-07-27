@@ -1,0 +1,1 @@
+- When working with the Procore API definitions, if you can't find a v2.0 endpoint, search in prior versions until you find a matching endpoint.
