@@ -6,10 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Kiota.Abstractions;
-using Procore.SDK.ProjectManagement.Models;
-using Procore.SDK.Core.Models;
 using Procore.SDK.Core.ErrorHandling;
 using Procore.SDK.Core.Logging;
+using CoreModels = Procore.SDK.Core.Models;
+using ProjectModels = Procore.SDK.ProjectManagement.Models;
 
 namespace Procore.SDK.ProjectManagement;
 
@@ -17,7 +17,7 @@ namespace Procore.SDK.ProjectManagement;
 /// Implementation of the ProjectManagement client wrapper that provides domain-specific 
 /// convenience methods over the generated Kiota client.
 /// </summary>
-public class ProcoreProjectManagementClient : IProjectManagementClient
+public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementClient
 {
     private readonly Procore.SDK.ProjectManagement.ProjectManagementClient _generatedClient;
     private readonly ILogger<ProcoreProjectManagementClient>? _logger;
@@ -125,7 +125,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="companyId">The company ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A collection of projects.</returns>
-    public async Task<IEnumerable<Project>> GetProjectsAsync(int companyId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProjectModels.Project>> GetProjectsAsync(int companyId, CancellationToken cancellationToken = default)
     {
         return await ExecuteWithResilienceAsync(
             async () =>
@@ -134,7 +134,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
                 
                 // TODO: Replace with actual implementation using generated client
                 // This is currently a placeholder implementation
-                return Enumerable.Empty<Project>();
+                return Enumerable.Empty<ProjectModels.Project>();
             },
             $"GetProjects-Company-{companyId}",
             null,
@@ -148,7 +148,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="projectId">The project ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The project.</returns>
-    public async Task<Project> GetProjectAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.Project> GetProjectAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -180,7 +180,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="request">The project creation request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The created project.</returns>
-    public async Task<Project> CreateProjectAsync(int companyId, CreateProjectRequest request, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.Project> CreateProjectAsync(int companyId, ProjectModels.CreateProjectRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         
@@ -221,7 +221,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="request">The project update request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The updated project.</returns>
-    public async Task<Project> UpdateProjectAsync(int companyId, int projectId, UpdateProjectRequest request, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.Project> UpdateProjectAsync(int companyId, int projectId, ProjectModels.UpdateProjectRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         
@@ -284,14 +284,14 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="projectId">The project ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A collection of budget line items.</returns>
-    public async Task<IEnumerable<BudgetLineItem>> GetBudgetLineItemsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProjectModels.BudgetLineItem>> GetBudgetLineItemsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
         try
         {
             _logger?.LogDebug("Getting budget line items for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
-            return Enumerable.Empty<BudgetLineItem>();
+            return Enumerable.Empty<ProjectModels.BudgetLineItem>();
         }
         catch (HttpRequestException ex)
         {
@@ -308,7 +308,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="lineItemId">The budget line item ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The budget line item.</returns>
-    public async Task<BudgetLineItem> GetBudgetLineItemAsync(int companyId, int projectId, int lineItemId, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.BudgetLineItem> GetBudgetLineItemAsync(int companyId, int projectId, int lineItemId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -344,7 +344,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="request">The budget change creation request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The created budget change.</returns>
-    public async Task<BudgetChange> CreateBudgetChangeAsync(int companyId, int projectId, CreateBudgetChangeRequest request, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.BudgetChange> CreateBudgetChangeAsync(int companyId, int projectId, ProjectModels.CreateBudgetChangeRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         
@@ -379,7 +379,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="projectId">The project ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A collection of budget changes.</returns>
-    public async Task<IEnumerable<BudgetChange>> GetBudgetChangesAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProjectModels.BudgetChange>> GetBudgetChangesAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -406,14 +406,14 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="projectId">The project ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A collection of commitment contracts.</returns>
-    public async Task<IEnumerable<CommitmentContract>> GetCommitmentContractsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProjectModels.CommitmentContract>> GetCommitmentContractsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
         try
         {
             _logger?.LogDebug("Getting commitment contracts for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
-            return Enumerable.Empty<CommitmentContract>();
+            return Enumerable.Empty<ProjectModels.CommitmentContract>();
         }
         catch (HttpRequestException ex)
         {
@@ -430,7 +430,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="contractId">The contract ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The commitment contract.</returns>
-    public async Task<CommitmentContract> GetCommitmentContractAsync(int companyId, int projectId, int contractId, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.CommitmentContract> GetCommitmentContractAsync(int companyId, int projectId, int contractId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -465,7 +465,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="request">The change order creation request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The created change order.</returns>
-    public async Task<ChangeOrder> CreateChangeOrderAsync(int companyId, int projectId, CreateChangeOrderRequest request, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.ChangeOrder> CreateChangeOrderAsync(int companyId, int projectId, ProjectModels.CreateChangeOrderRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         
@@ -503,7 +503,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="projectId">The project ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A collection of change orders.</returns>
-    public async Task<IEnumerable<ChangeOrder>> GetChangeOrdersAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProjectModels.ChangeOrder>> GetChangeOrdersAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -530,7 +530,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="projectId">The project ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A collection of workflow instances.</returns>
-    public async Task<IEnumerable<WorkflowInstance>> GetWorkflowInstancesAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProjectModels.WorkflowInstance>> GetWorkflowInstancesAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -554,7 +554,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="workflowId">The workflow instance ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The workflow instance.</returns>
-    public async Task<WorkflowInstance> GetWorkflowInstanceAsync(int companyId, int projectId, int workflowId, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.WorkflowInstance> GetWorkflowInstanceAsync(int companyId, int projectId, int workflowId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -635,7 +635,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="projectId">The project ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A collection of meetings.</returns>
-    public async Task<IEnumerable<Meeting>> GetMeetingsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProjectModels.Meeting>> GetMeetingsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -659,7 +659,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="meetingId">The meeting ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The meeting.</returns>
-    public async Task<Meeting> GetMeetingAsync(int companyId, int projectId, int meetingId, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.Meeting> GetMeetingAsync(int companyId, int projectId, int meetingId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -694,7 +694,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="request">The meeting creation request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The created meeting.</returns>
-    public async Task<Meeting> CreateMeetingAsync(int companyId, int projectId, CreateMeetingRequest request, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.Meeting> CreateMeetingAsync(int companyId, int projectId, ProjectModels.CreateMeetingRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         
@@ -732,7 +732,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="request">The meeting update request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The updated meeting.</returns>
-    public async Task<Meeting> UpdateMeetingAsync(int companyId, int projectId, int meetingId, CreateMeetingRequest request, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.Meeting> UpdateMeetingAsync(int companyId, int projectId, int meetingId, ProjectModels.CreateMeetingRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         
@@ -770,14 +770,14 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="companyId">The company ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A collection of active projects.</returns>
-    public async Task<IEnumerable<Project>> GetActiveProjectsAsync(int companyId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProjectModels.Project>> GetActiveProjectsAsync(int companyId, CancellationToken cancellationToken = default)
     {
         try
         {
             _logger?.LogDebug("Getting active projects for company {CompanyId}", companyId);
             
             // Placeholder implementation
-            return Enumerable.Empty<Project>();
+            return Enumerable.Empty<ProjectModels.Project>();
         }
         catch (HttpRequestException ex)
         {
@@ -793,7 +793,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="projectName">The project name.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The project.</returns>
-    public async Task<Project> GetProjectByNameAsync(int companyId, string projectName, CancellationToken cancellationToken = default)
+    public async Task<ProjectModels.Project> GetProjectByNameAsync(int companyId, string projectName, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(projectName))
         {
@@ -852,7 +852,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="thresholdPercentage">The variance threshold percentage.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A collection of budget variances.</returns>
-    public async Task<IEnumerable<BudgetVariance>> GetBudgetVariancesAsync(int companyId, int projectId, decimal thresholdPercentage, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProjectModels.BudgetVariance>> GetBudgetVariancesAsync(int companyId, int projectId, decimal thresholdPercentage, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -879,7 +879,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of projects.</returns>
-    public async Task<PagedResult<Project>> GetProjectsPagedAsync(int companyId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<ProjectModels.Project>> GetProjectsPagedAsync(int companyId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -888,9 +888,9 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
             _logger?.LogDebug("Getting projects with pagination for company {CompanyId} (page {Page}, per page {PerPage})", companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<Project>
+            return new CoreModels.PagedResult<ProjectModels.Project>
             {
-                Items = Enumerable.Empty<Project>(),
+                Items = Enumerable.Empty<ProjectModels.Project>(),
                 TotalCount = 0,
                 Page = options.Page,
                 PerPage = options.PerPage,
@@ -914,7 +914,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of budget line items.</returns>
-    public async Task<PagedResult<BudgetLineItem>> GetBudgetLineItemsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<ProjectModels.BudgetLineItem>> GetBudgetLineItemsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -923,9 +923,9 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
             _logger?.LogDebug("Getting budget line items with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<BudgetLineItem>
+            return new CoreModels.PagedResult<ProjectModels.BudgetLineItem>
             {
-                Items = Enumerable.Empty<BudgetLineItem>(),
+                Items = Enumerable.Empty<ProjectModels.BudgetLineItem>(),
                 TotalCount = 0,
                 Page = options.Page,
                 PerPage = options.PerPage,
@@ -949,7 +949,7 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of commitment contracts.</returns>
-    public async Task<PagedResult<CommitmentContract>> GetCommitmentContractsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<ProjectModels.CommitmentContract>> GetCommitmentContractsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -958,9 +958,9 @@ public class ProcoreProjectManagementClient : IProjectManagementClient
             _logger?.LogDebug("Getting commitment contracts with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<CommitmentContract>
+            return new CoreModels.PagedResult<ProjectModels.CommitmentContract>
             {
-                Items = Enumerable.Empty<CommitmentContract>(),
+                Items = Enumerable.Empty<ProjectModels.CommitmentContract>(),
                 TotalCount = 0,
                 Page = options.Page,
                 PerPage = options.PerPage,
