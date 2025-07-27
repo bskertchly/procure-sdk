@@ -15,23 +15,30 @@
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="FluentAssertions" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Testing" />
-    <PackageReference Include="System.IO.Abstractions" />
-    <PackageReference Include="System.IO.Abstractions.TestingHelpers" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.Extensions.Options" />
-    <PackageReference Include="Newtonsoft.Json" />
-    <PackageReference Include="SharpCompress" />
+    <PackageReference Include="Microsoft.Kiota.Abstractions" />
+    <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" />
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="NSubstitute" />
     <Using Include="FluentAssertions" />
-    <Using Include="System.IO.Abstractions" />
-    <Using Include="System.IO.Abstractions.TestingHelpers" />
+    <Using Include="Microsoft.Kiota.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Procore.SDK.Core\Procore.SDK.Core.csproj" />
+    <ProjectReference Include="..\..\src\Procore.SDK.ProjectManagement\Procore.SDK.ProjectManagement.csproj" />
+    <ProjectReference Include="..\..\src\Procore.SDK.ResourceManagement\Procore.SDK.ResourceManagement.csproj" />
+    <ProjectReference Include="..\..\src\Procore.SDK.QualitySafety\Procore.SDK.QualitySafety.csproj" />
+    <ProjectReference Include="..\..\src\Procore.SDK.ConstructionFinancials\Procore.SDK.ConstructionFinancials.csproj" />
+    <ProjectReference Include="..\..\src\Procore.SDK.FieldProductivity\Procore.SDK.FieldProductivity.csproj" />
+    <ProjectReference Include="..\..\src\Procore.SDK.Shared\Procore.SDK.Shared.csproj" />
   </ItemGroup>
 
 </Project>

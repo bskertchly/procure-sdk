@@ -53,7 +53,7 @@ public class Program
         services.AddScoped<ITokenStorage, SessionTokenStorage>();
 
         // Add Core client for API operations
-        services.AddScoped<ICoreClient, CoreClient>();
+        services.AddScoped<ProcoreCoreClient>();
 
         // Add application services
         services.AddScoped<AuthenticationService>();

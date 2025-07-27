@@ -1,7 +1,8 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using WebSample.Models;
 using WebSample.Services;
-using System.Diagnostics;
 
 namespace WebSample.Controllers;
 

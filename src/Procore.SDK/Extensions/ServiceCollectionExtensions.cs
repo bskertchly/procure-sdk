@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Http.HttpClientLibrary;
+using Procore.SDK.Core;
+using Procore.SDK.Core.Models;
 using Procore.SDK.Shared.Authentication;
 using System;
 using System.Net.Http;
@@ -196,9 +198,8 @@ public static class ServiceCollectionExtensions
 
     private static void RegisterClientServices(IServiceCollection services)
     {
-        // Register Core client (using temporary mock for compilation)
-        // TODO: Replace with actual ProcoreCoreClient once Core project compilation is fixed
-        services.TryAddScoped<ICoreClient>(provider => new TemporaryCoreClient());
+        // Register Core client
+        services.TryAddScoped<ICoreClient, ProcoreCoreClient>();
         
         // Register generated Kiota clients (when available)
         // These would be registered when the generation issues are resolved

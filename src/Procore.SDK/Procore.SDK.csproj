@@ -20,8 +20,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Procore.SDK.Shared\Procore.SDK.Shared.csproj" />
+    <ProjectReference Include="..\Procore.SDK.Core\Procore.SDK.Core.csproj" />
     <!-- Temporarily disabled due to compilation issues with generated Kiota clients -->
-    <!-- <ProjectReference Include="..\Procore.SDK.Core\Procore.SDK.Core.csproj" /> -->
     <!-- <ProjectReference Include="..\Procore.SDK.ProjectManagement\Procore.SDK.ProjectManagement.csproj" /> -->
     <!-- <ProjectReference Include="..\Procore.SDK.QualitySafety\Procore.SDK.QualitySafety.csproj" /> -->
     <!-- <ProjectReference Include="..\Procore.SDK.ConstructionFinancials\Procore.SDK.ConstructionFinancials.csproj" /> -->

@@ -52,6 +52,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<Observation>();
         }
         catch (HttpRequestException ex)
@@ -192,7 +193,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Deleting observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
             
             // Placeholder implementation
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -219,6 +220,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting inspection templates for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<InspectionTemplate>();
         }
         catch (HttpRequestException ex)
@@ -374,6 +376,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting inspection items for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<InspectionItem>();
         }
         catch (HttpRequestException ex)
@@ -477,6 +480,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting safety incidents for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<SafetyIncident>();
         }
         catch (HttpRequestException ex)
@@ -614,6 +618,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting compliance checks for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<ComplianceCheck>();
         }
         catch (HttpRequestException ex)
@@ -750,6 +755,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting open observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<Observation>();
         }
         catch (HttpRequestException ex)
@@ -773,6 +779,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting critical observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<Observation>();
         }
         catch (HttpRequestException ex)
@@ -796,6 +803,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting overdue observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<Observation>();
         }
         catch (HttpRequestException ex)
@@ -820,6 +828,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting recent incidents (last {Days} days) for project {ProjectId} in company {CompanyId}", days, projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<SafetyIncident>();
         }
         catch (HttpRequestException ex)
@@ -843,6 +852,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting observation summary for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return new Dictionary<string, int>
             {
                 ["Open"] = 5,

@@ -1,0 +1,42 @@
+{
+  "descriptionHash": "26854AEE5A885E1084172E1C485A8E488F1A433A3EDBCC213841A5AB9FD29BADA164028738568A1DA0DE9EFCEEA3C171FFA0116409490B09C0AAAABC1C469AE8",
+  "descriptionLocation": "../../../docs/rest_OAS_all.json",
+  "lockFileVersion": "1.0.0",
+  "kiotaVersion": "1.28.0",
+  "clientClassName": "CoreClient",
+  "typeAccessModifier": "Public",
+  "clientNamespaceName": "Procore.SDK.Core",
+  "language": "CSharp",
+  "usesBackingStore": false,
+  "excludeBackwardCompatible": true,
+  "includeAdditionalData": true,
+  "disableSSLValidation": false,
+  "serializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Text.TextSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Form.FormSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Multipart.MultipartSerializationWriterFactory"
+  ],
+  "deserializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Text.TextParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Form.FormParseNodeFactory"
+  ],
+  "structuredMimeTypes": [
+    "application/json",
+    "text/plain;q=0.9",
+    "application/x-www-form-urlencoded;q=0.2",
+    "multipart/form-data;q=0.1"
+  ],
+  "includePatterns": [
+    "**/companies",
+    "**/companies/**",
+    "**/company_users/**",
+    "**/users/**",
+    "**/folders-and-files/**",
+    "**/custom-fields/**",
+    "**/configurable-field-sets/**"
+  ],
+  "excludePatterns": [],
+  "disabledValidationRules": []
+}

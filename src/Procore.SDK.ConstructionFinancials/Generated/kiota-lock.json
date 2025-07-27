@@ -1,0 +1,42 @@
+{
+  "descriptionHash": "24E2CEBDBBBFBC07A254B0ADF3F841C030F9B38A3D134D4DED1228BCBCEA56BE1B82D3D4746385043E28A30BB82ABBDF89A77FEF51A66C2368CE4C0E7C284A05",
+  "descriptionLocation": "../../../docs/rest_OAS_all.json",
+  "lockFileVersion": "1.0.0",
+  "kiotaVersion": "1.28.0",
+  "clientClassName": "ConstructionFinancialsClient",
+  "typeAccessModifier": "Public",
+  "clientNamespaceName": "Procore.SDK.ConstructionFinancials",
+  "language": "CSharp",
+  "usesBackingStore": false,
+  "excludeBackwardCompatible": true,
+  "includeAdditionalData": true,
+  "disableSSLValidation": false,
+  "serializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Text.TextSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Form.FormSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Multipart.MultipartSerializationWriterFactory"
+  ],
+  "deserializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Text.TextParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Form.FormParseNodeFactory"
+  ],
+  "structuredMimeTypes": [
+    "application/json",
+    "text/plain;q=0.9",
+    "application/x-www-form-urlencoded;q=0.2",
+    "multipart/form-data;q=0.1"
+  ],
+  "includePatterns": [
+    "**/contracts/**",
+    "**/purchase-orders/**",
+    "**/budgets/**",
+    "**/cost-codes/**",
+    "**/change-orders/**",
+    "**/invoices/**",
+    "**/payments/**"
+  ],
+  "excludePatterns": [],
+  "disabledValidationRules": []
+}

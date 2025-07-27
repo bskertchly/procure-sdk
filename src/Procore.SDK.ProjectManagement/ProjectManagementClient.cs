@@ -66,7 +66,11 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
         
         try
         {
-            return await operation();
+            _logger?.LogDebug("Getting projects for company {CompanyId}", companyId);
+            
+            // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
+            return Enumerable.Empty<Project>();
         }
         catch (HttpRequestException ex)
         {
@@ -264,7 +268,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Deleting project {ProjectId} for company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -291,7 +295,8 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Getting budget line items for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
-            return Enumerable.Empty<ProjectModels.BudgetLineItem>();
+            await Task.CompletedTask.ConfigureAwait(false);
+            return Enumerable.Empty<BudgetLineItem>();
         }
         catch (HttpRequestException ex)
         {
@@ -386,6 +391,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Getting budget changes for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<BudgetChange>();
         }
         catch (HttpRequestException ex)
@@ -412,8 +418,8 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
         {
             _logger?.LogDebug("Getting commitment contracts for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
-            // Placeholder implementation
-            return Enumerable.Empty<ProjectModels.CommitmentContract>();
+            await Task.CompletedTask.ConfigureAwait(false);
+            return Enumerable.Empty<CommitmentContract>();
         }
         catch (HttpRequestException ex)
         {
@@ -510,6 +516,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Getting change orders for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<ChangeOrder>();
         }
         catch (HttpRequestException ex)
@@ -537,6 +544,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Getting workflow instances for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<WorkflowInstance>();
         }
         catch (HttpRequestException ex)
@@ -592,7 +600,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Restarting workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
             
             // Placeholder implementation
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -615,7 +623,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Terminating workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
             
             // Placeholder implementation
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -642,6 +650,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Getting meetings for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<Meeting>();
         }
         catch (HttpRequestException ex)
@@ -777,7 +786,8 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Getting active projects for company {CompanyId}", companyId);
             
             // Placeholder implementation
-            return Enumerable.Empty<ProjectModels.Project>();
+            await Task.CompletedTask.ConfigureAwait(false);
+            return Enumerable.Empty<Project>();
         }
         catch (HttpRequestException ex)
         {
@@ -835,6 +845,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Getting budget total for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return 100000m;
         }
         catch (HttpRequestException ex)
@@ -859,6 +870,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             _logger?.LogDebug("Getting budget variances for project {ProjectId} in company {CompanyId} with threshold {Threshold}%", projectId, companyId, thresholdPercentage);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<BudgetVariance>();
         }
         catch (HttpRequestException ex)

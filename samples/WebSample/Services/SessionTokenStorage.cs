@@ -26,7 +26,7 @@ public class SessionTokenStorage : ITokenStorage
         _logger = logger;
     }
 
-    public async Task<AccessToken?> GetTokenAsync(CancellationToken cancellationToken = default)
+    public async Task<AccessToken?> GetTokenAsync(string key, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -54,7 +54,7 @@ public class SessionTokenStorage : ITokenStorage
             catch (JsonException ex)
             {
                 _logger.LogWarning(ex, "Failed to deserialize token from session, clearing corrupted data");
-                await ClearTokenAsync(cancellationToken);
+                await DeleteTokenAsync(key, cancellationToken);
                 return null;
             }
 
@@ -67,7 +67,7 @@ public class SessionTokenStorage : ITokenStorage
                 {
                     _logger.LogInformation("Token found in session but is expired");
                     // Clear expired token
-                    await ClearTokenAsync(cancellationToken);
+                    await DeleteTokenAsync(key, cancellationToken);
                     return null;
                 }
             }
@@ -81,7 +81,7 @@ public class SessionTokenStorage : ITokenStorage
         }
     }
 
-    public Task StoreTokenAsync(AccessToken token, CancellationToken cancellationToken = default)
+    public Task StoreTokenAsync(string key, AccessToken token, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(token);
 
@@ -117,7 +117,7 @@ public class SessionTokenStorage : ITokenStorage
         }
     }
 
-    public Task ClearTokenAsync(CancellationToken cancellationToken = default)
+    public Task DeleteTokenAsync(string key, CancellationToken cancellationToken = default)
     {
         try
         {

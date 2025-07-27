@@ -1,0 +1,41 @@
+{
+  "descriptionHash": "FE39A2829A1E8DBE9E526E23563BFC4BC601964639A1DE7565259F0D67E0BB2763C7FE184BD48D3FEF86358CE3CE882BD295DB4C87A52020249497339CA9EADB",
+  "descriptionLocation": "../../../docs/rest_OAS_all.json",
+  "lockFileVersion": "1.0.0",
+  "kiotaVersion": "1.28.0",
+  "clientClassName": "QualitySafetyClient",
+  "typeAccessModifier": "Public",
+  "clientNamespaceName": "Procore.SDK.QualitySafety",
+  "language": "CSharp",
+  "usesBackingStore": false,
+  "excludeBackwardCompatible": true,
+  "includeAdditionalData": true,
+  "disableSSLValidation": false,
+  "serializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Text.TextSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Form.FormSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Multipart.MultipartSerializationWriterFactory"
+  ],
+  "deserializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Text.TextParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Form.FormParseNodeFactory"
+  ],
+  "structuredMimeTypes": [
+    "application/json",
+    "text/plain;q=0.9",
+    "application/x-www-form-urlencoded;q=0.2",
+    "multipart/form-data;q=0.1"
+  ],
+  "includePatterns": [
+    "**/inspections/**",
+    "**/observations/**",
+    "**/incidents/**",
+    "**/safety/**",
+    "**/quality/**",
+    "**/punch/**"
+  ],
+  "excludePatterns": [],
+  "disabledValidationRules": []
+}

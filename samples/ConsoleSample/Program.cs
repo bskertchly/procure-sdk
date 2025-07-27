@@ -1,11 +1,12 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Procore.SDK.Core;
+using Procore.SDK.Core.Models;
 using Procore.SDK.Extensions;
 using Procore.SDK.Shared.Authentication;
-using Procore.SDK.Core;
-using System.Diagnostics;
 
 namespace ConsoleSample;
 
@@ -67,7 +68,7 @@ class Program
                 services.AddSingleton<ITokenStorage, InMemoryTokenStorage>();
                 
                 // Add Core client for API operations
-                services.AddSingleton<ICoreClient, CoreClient>();
+                services.AddSingleton<ICoreClient, ProcoreCoreClient>();
             })
             .ConfigureLogging(logging =>
             {
@@ -195,7 +196,7 @@ class Program
             {
                 Console.WriteLine("✅ User information retrieved successfully");
                 Console.WriteLine($"   ID: {currentUser.Id}");
-                Console.WriteLine($"   Name: {currentUser.Name}");
+                Console.WriteLine($"   Name: {currentUser.FirstName} {currentUser.LastName}");
                 Console.WriteLine($"   Email: {currentUser.Email}");
                 Console.WriteLine($"   Is Active: {currentUser.IsActive}");
             }
@@ -251,9 +252,7 @@ class Program
                     var newCompanyRequest = new CreateCompanyRequest
                     {
                         Name = $"Test Company {DateTime.UtcNow:yyyyMMdd-HHmmss}",
-                        CompanyType = "General Contractor",
-                        Phone = "+1-555-0123",
-                        Website = "https://example.com"
+                        Description = "Test company created by SDK sample"
                     };
                     
                     var newCompany = await coreClient.CreateCompanyAsync(newCompanyRequest);
@@ -277,7 +276,7 @@ class Program
                 Console.WriteLine($"✅ Found {userList.Count} users in company");
                 foreach (var user in userList.Take(3))
                 {
-                    Console.WriteLine($"   👤 {user.Name} ({user.Email}) - Active: {user.IsActive}");
+                    Console.WriteLine($"   👤 {user.FirstName} {user.LastName} ({user.Email}) - Active: {user.IsActive}");
                 }
                 
                 if (userList.Count > 3)

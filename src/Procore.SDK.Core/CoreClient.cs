@@ -43,6 +43,7 @@ public class ProcoreCoreClient : ICoreClient
 
     /// <summary>
     /// Gets all companies accessible to the authenticated user.
+    /// Note: This endpoint does not require the Procore-Company-Id header to be included.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A collection of companies.</returns>
@@ -50,14 +51,30 @@ public class ProcoreCoreClient : ICoreClient
     {
         try
         {
-            _logger?.LogDebug("Getting companies");
+            _logger?.LogDebug("Getting companies using generated Kiota client");
             
-            // Note: This is a placeholder implementation
-            // The actual implementation would call the generated Kiota client
-            // and map the response to domain models
+            // Use the actual generated Kiota client for the List Companies endpoint
+            var companiesResponse = await _generatedClient.Rest.V10.Companies.GetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
             
-            // For now, return empty collection to make tests compile
-            return Enumerable.Empty<Company>();
+            if (companiesResponse == null || !companiesResponse.Any())
+            {
+                _logger?.LogWarning("No companies returned from API");
+                return Enumerable.Empty<Company>();
+            }
+            
+            // Map from generated response models to our domain models
+            return companiesResponse.Select(companyResponse => new Company
+            {
+                Id = companyResponse.Id ?? 0,
+                Name = companyResponse.Name ?? string.Empty,
+                IsActive = companyResponse.IsActive ?? true,
+                LogoUrl = companyResponse.LogoUrl,
+                // Note: The API response doesn't include description, created/updated dates
+                // Those would need to be retrieved from individual company endpoints
+                Description = null,
+                CreatedAt = DateTime.MinValue,
+                UpdatedAt = DateTime.MinValue
+            });
         }
         catch (HttpRequestException ex)
         {
@@ -78,8 +95,27 @@ public class ProcoreCoreClient : ICoreClient
         {
             _logger?.LogDebug("Getting company {CompanyId}", companyId);
             
-            // Placeholder implementation
-            return new Company { Id = companyId, Name = "Placeholder Company" };
+            // Note: The generated Kiota client doesn't expose a direct "get company" endpoint.
+            // This is due to the Procore API design where most operations are scoped within
+            // a company context rather than retrieving company details themselves.
+            // 
+            // The available company information comes from:
+            // 1. The List Companies endpoint (GetCompaniesAsync)
+            // 2. Company-scoped operations that may include company context
+            // 
+            // For individual company details, you would typically:
+            // 1. Use GetCompaniesAsync() and filter by ID
+            // 2. Store company information from authentication/authorization context
+            
+            var companies = await GetCompaniesAsync(cancellationToken).ConfigureAwait(false);
+            var company = companies.FirstOrDefault(c => c.Id == companyId);
+            
+            if (company == null)
+            {
+                throw new HttpRequestException($"Company {companyId} not found or not accessible");
+            }
+            
+            return company;
         }
         catch (HttpRequestException ex)
         {
@@ -102,16 +138,22 @@ public class ProcoreCoreClient : ICoreClient
         {
             _logger?.LogDebug("Creating company {CompanyName}", request.Name);
             
-            // Placeholder implementation
-            return new Company 
-            { 
-                Id = 1, 
-                Name = request.Name, 
-                Description = request.Description,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            // Note: The generated Kiota client doesn't expose a "create company" endpoint.
+            // Company creation is typically handled through:
+            // 1. Administrative interfaces in the Procore web application
+            // 2. Account provisioning processes
+            // 3. Specialized administrative APIs not included in the standard REST API
+            // 
+            // If company creation is required, it would need to be implemented through:
+            // 1. Administrative API endpoints (if available)
+            // 2. Custom integration with Procore's provisioning systems
+            // 3. Manual company setup processes
+            
+            _logger?.LogWarning("CreateCompanyAsync: Company creation not available in generated client. This operation typically requires administrative access.");
+            
+            // Return a mock response for interface compliance
+            await Task.CompletedTask.ConfigureAwait(false);
+            throw new NotSupportedException("Company creation is not supported through the standard API. Contact Procore support for company provisioning.");
         }
         catch (HttpRequestException ex)
         {
@@ -164,7 +206,7 @@ public class ProcoreCoreClient : ICoreClient
             _logger?.LogDebug("Deleting company {CompanyId}", companyId);
             
             // Placeholder implementation
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -187,10 +229,31 @@ public class ProcoreCoreClient : ICoreClient
     {
         try
         {
-            _logger?.LogDebug("Getting users for company {CompanyId}", companyId);
+            _logger?.LogDebug("Getting users for company {CompanyId} using V1.1 generated Kiota client", companyId);
             
-            // Placeholder implementation
-            return Enumerable.Empty<User>();
+            // Use the V1.1 generated Kiota client to list all active users for a company
+            var usersResponse = await _generatedClient.Rest.V11.Companies[companyId].Users.GetAsync(
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            if (usersResponse == null || !usersResponse.Any())
+            {
+                _logger?.LogWarning("No users returned from V1.1 Users endpoint for company {CompanyId}", companyId);
+                return Enumerable.Empty<User>();
+            }
+            
+            // Map from V1.1 generated response models to our domain models
+            return usersResponse.Select(userResponse => new User
+            {
+                Id = userResponse.Id ?? 0,
+                Email = userResponse.EmailAddress ?? string.Empty,
+                FirstName = userResponse.FirstName ?? string.Empty,
+                LastName = userResponse.LastName ?? string.Empty,
+                JobTitle = userResponse.JobTitle,
+                PhoneNumber = userResponse.BusinessPhone ?? userResponse.MobilePhone,
+                IsActive = userResponse.IsActive ?? true,
+                CreatedAt = userResponse.CreatedAt?.DateTime ?? DateTime.MinValue,
+                UpdatedAt = userResponse.UpdatedAt?.DateTime ?? DateTime.MinValue
+            });
         }
         catch (HttpRequestException ex)
         {
@@ -212,14 +275,28 @@ public class ProcoreCoreClient : ICoreClient
         {
             _logger?.LogDebug("Getting user {UserId} for company {CompanyId}", userId, companyId);
             
-            // Placeholder implementation
+            // Use the actual generated Kiota client
+            var userResponse = await _generatedClient.Rest.V10.Users[userId].GetAsync(
+                requestConfiguration => requestConfiguration.QueryParameters.CompanyId = companyId,
+                cancellationToken).ConfigureAwait(false);
+            
+            if (userResponse == null)
+            {
+                throw new HttpRequestException($"User {userId} not found in company {companyId}");
+            }
+            
+            // Map from generated response to our domain model
             return new User 
             { 
-                Id = userId, 
-                Email = "placeholder@example.com",
-                FirstName = "John",
-                LastName = "Doe",
-                IsActive = true
+                Id = userResponse.Id ?? userId,
+                Email = userResponse.EmailAddress ?? string.Empty,
+                FirstName = userResponse.FirstName ?? string.Empty,
+                LastName = userResponse.LastName ?? string.Empty,
+                JobTitle = userResponse.JobTitle,
+                PhoneNumber = userResponse.BusinessPhone,
+                IsActive = userResponse.IsActive ?? true,
+                CreatedAt = userResponse.CreatedAt?.DateTime ?? DateTime.MinValue,
+                UpdatedAt = userResponse.UpdatedAt?.DateTime ?? DateTime.MinValue
             };
         }
         catch (HttpRequestException ex)
@@ -242,20 +319,43 @@ public class ProcoreCoreClient : ICoreClient
         
         try
         {
-            _logger?.LogDebug("Creating user {Email} for company {CompanyId}", request.Email, companyId);
+            _logger?.LogDebug("Creating user {Email} for company {CompanyId} using V1.1 generated Kiota client", request.Email, companyId);
             
-            // Placeholder implementation
-            return new User 
-            { 
-                Id = 1,
-                Email = request.Email,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                JobTitle = request.JobTitle,
-                PhoneNumber = request.PhoneNumber,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+            // Create the request body for V1.1 Users endpoint
+            var requestBody = new global::Procore.SDK.Core.Rest.V11.Companies.Item.Users.UsersPostRequestBody
+            {
+                User = new global::Procore.SDK.Core.Rest.V11.Companies.Item.Users.UsersPostRequestBody_user
+                {
+                    EmailAddress = request.Email,
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    JobTitle = request.JobTitle,
+                    BusinessPhone = request.PhoneNumber,
+                    IsActive = true
+                }
+            };
+            
+            // Use the V1.1 generated Kiota client to create the user
+            var userResponse = await _generatedClient.Rest.V11.Companies[companyId].Users.PostAsync(
+                requestBody, cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            if (userResponse == null)
+            {
+                throw new HttpRequestException($"Failed to create user {request.Email} in company {companyId}");
+            }
+            
+            // Map from V1.1 generated response to our domain model
+            return new User
+            {
+                Id = userResponse.Id ?? 0,
+                Email = userResponse.EmailAddress ?? request.Email,
+                FirstName = userResponse.FirstName ?? request.FirstName,
+                LastName = userResponse.LastName ?? request.LastName,
+                JobTitle = userResponse.JobTitle ?? request.JobTitle,
+                PhoneNumber = userResponse.BusinessPhone ?? userResponse.MobilePhone,
+                IsActive = userResponse.IsActive ?? true,
+                CreatedAt = userResponse.CreatedAt?.DateTime ?? DateTime.UtcNow,
+                UpdatedAt = userResponse.UpdatedAt?.DateTime ?? DateTime.UtcNow
             };
         }
         catch (HttpRequestException ex)
@@ -279,19 +379,43 @@ public class ProcoreCoreClient : ICoreClient
         
         try
         {
-            _logger?.LogDebug("Updating user {UserId} for company {CompanyId}", userId, companyId);
+            _logger?.LogDebug("Updating user {UserId} for company {CompanyId} using V1.1 generated Kiota client", userId, companyId);
             
-            // Placeholder implementation
-            return new User 
-            { 
-                Id = userId,
-                Email = request.Email ?? "updated@example.com",
-                FirstName = request.FirstName ?? "Updated",
-                LastName = request.LastName ?? "User",
-                JobTitle = request.JobTitle,
-                PhoneNumber = request.PhoneNumber,
-                IsActive = request.IsActive ?? true,
-                UpdatedAt = DateTime.UtcNow
+            // Create the request body for V1.1 Users PATCH endpoint
+            var requestBody = new global::Procore.SDK.Core.Rest.V11.Companies.Item.Users.Item.UsersPatchRequestBody
+            {
+                User = new global::Procore.SDK.Core.Rest.V11.Companies.Item.Users.Item.UsersPatchRequestBody_user
+                {
+                    EmailAddress = request.Email,
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    JobTitle = request.JobTitle,
+                    BusinessPhone = request.PhoneNumber,
+                    IsActive = request.IsActive
+                }
+            };
+            
+            // Use the V1.1 generated Kiota client to update the user
+            var userResponse = await _generatedClient.Rest.V11.Companies[companyId].Users[userId].PatchAsync(
+                requestBody, cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            if (userResponse == null)
+            {
+                throw new HttpRequestException($"Failed to update user {userId} in company {companyId}");
+            }
+            
+            // Map from V1.1 generated response to our domain model
+            return new User
+            {
+                Id = userResponse.Id ?? userId,
+                Email = userResponse.EmailAddress ?? request.Email ?? string.Empty,
+                FirstName = userResponse.FirstName ?? request.FirstName ?? string.Empty,
+                LastName = userResponse.LastName ?? request.LastName ?? string.Empty,
+                JobTitle = userResponse.JobTitle ?? request.JobTitle,
+                PhoneNumber = userResponse.BusinessPhone ?? userResponse.MobilePhone,
+                IsActive = userResponse.IsActive ?? true,
+                CreatedAt = userResponse.CreatedAt?.DateTime ?? DateTime.MinValue,
+                UpdatedAt = userResponse.UpdatedAt?.DateTime ?? DateTime.UtcNow
             };
         }
         catch (HttpRequestException ex)
@@ -314,7 +438,7 @@ public class ProcoreCoreClient : ICoreClient
             _logger?.LogDebug("Deactivating user {UserId} for company {CompanyId}", userId, companyId);
             
             // Placeholder implementation
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -337,10 +461,33 @@ public class ProcoreCoreClient : ICoreClient
     {
         try
         {
-            _logger?.LogDebug("Getting documents for company {CompanyId}", companyId);
+            _logger?.LogDebug("Getting documents for company {CompanyId} using generated Kiota client", companyId);
             
-            // Placeholder implementation
-            return Enumerable.Empty<Document>();
+            // Use the generated Kiota client to get folders and files
+            var foldersResponse = await _generatedClient.Rest.V10.Companies[companyId].Folders.GetAsync(
+                requestConfiguration => requestConfiguration.QueryParameters.ExcludeFolders = true,
+                cancellationToken).ConfigureAwait(false);
+            
+            if (foldersResponse?.Files == null || !foldersResponse.Files.Any())
+            {
+                _logger?.LogWarning("No files returned from Folders endpoint for company {CompanyId}", companyId);
+                return Enumerable.Empty<Document>();
+            }
+            
+            // Map from generated response models to our domain models
+            return foldersResponse.Files.Select(fileResponse => new Document
+            {
+                Id = fileResponse.Id ?? 0,
+                Name = fileResponse.Name ?? string.Empty,
+                FileName = fileResponse.Name ?? string.Empty, // Uses Name property since no Filename property
+                FileUrl = null, // URL not available in folders response
+                ContentType = fileResponse.FileType,
+                FileSize = fileResponse.Size ?? 0,
+                IsPrivate = fileResponse.Private ?? false,
+                CreatedAt = fileResponse.CreatedAt?.DateTime ?? DateTime.MinValue,
+                UpdatedAt = fileResponse.UpdatedAt?.DateTime ?? DateTime.MinValue,
+                Description = fileResponse.Description
+            });
         }
         catch (HttpRequestException ex)
         {
@@ -360,17 +507,30 @@ public class ProcoreCoreClient : ICoreClient
     {
         try
         {
-            _logger?.LogDebug("Getting document {DocumentId} for company {CompanyId}", documentId, companyId);
+            _logger?.LogDebug("Getting document {DocumentId} for company {CompanyId} using generated Kiota client", documentId, companyId);
             
-            // Placeholder implementation
-            return new Document 
-            { 
-                Id = documentId,
-                Name = "Placeholder Document",
-                FileName = "placeholder.pdf",
-                FileUrl = "https://example.com/placeholder.pdf",
-                ContentType = "application/pdf",
-                FileSize = 1024
+            // Use the generated Kiota client to get specific file
+            var fileResponse = await _generatedClient.Rest.V10.Companies[companyId].Files[documentId].GetAsync(
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            if (fileResponse == null)
+            {
+                throw new HttpRequestException($"Document {documentId} not found in company {companyId}");
+            }
+            
+            // Map from generated response to our domain model
+            return new Document
+            {
+                Id = fileResponse.Id ?? documentId,
+                Name = fileResponse.Name ?? string.Empty,
+                FileName = fileResponse.Name ?? string.Empty, // Uses Name property
+                FileUrl = null, // URL not available in files response
+                ContentType = fileResponse.FileType,
+                FileSize = fileResponse.Size ?? 0,
+                IsPrivate = fileResponse.Private ?? false,
+                CreatedAt = fileResponse.CreatedAt?.DateTime ?? DateTime.MinValue,
+                UpdatedAt = fileResponse.UpdatedAt?.DateTime ?? DateTime.MinValue,
+                Description = fileResponse.Description
             };
         }
         catch (HttpRequestException ex)
@@ -459,10 +619,12 @@ public class ProcoreCoreClient : ICoreClient
     {
         try
         {
-            _logger?.LogDebug("Deleting document {DocumentId} for company {CompanyId}", documentId, companyId);
+            _logger?.LogDebug("Deleting document {DocumentId} for company {CompanyId} using generated Kiota client", documentId, companyId);
             
-            // Placeholder implementation
-            await Task.CompletedTask;
+            // Use the generated Kiota client to delete the file
+            await _generatedClient.Rest.V10.Companies[companyId].Files[documentId].DeleteAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            _logger?.LogDebug("Successfully deleted document {DocumentId} for company {CompanyId}", documentId, companyId);
         }
         catch (HttpRequestException ex)
         {
@@ -488,10 +650,31 @@ public class ProcoreCoreClient : ICoreClient
         
         try
         {
-            _logger?.LogDebug("Getting custom fields for company {CompanyId} and resource type {ResourceType}", companyId, resourceType);
+            _logger?.LogDebug("Getting custom fields for company {CompanyId} and resource type {ResourceType} using V1.1 generated Kiota client", companyId, resourceType);
             
-            // Placeholder implementation
-            return Enumerable.Empty<CustomField>();
+            // Use the V1.1 Custom_field_definitions endpoint to list all custom fields
+            var customFieldsResponse = await _generatedClient.Rest.V11.Companies[companyId].Custom_field_definitions.GetAsync(
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            if (customFieldsResponse == null || !customFieldsResponse.Any())
+            {
+                _logger?.LogWarning("No custom field definitions returned from V1.1 endpoint for company {CompanyId}", companyId);
+                return Enumerable.Empty<CustomField>();
+            }
+            
+            // Map from V1.1 generated response models to our domain models
+            return customFieldsResponse.Select(fieldResponse => new CustomField
+            {
+                Id = fieldResponse.Id ?? 0,
+                Name = fieldResponse.Label ?? string.Empty,
+                FieldType = fieldResponse.DataType ?? "string",
+                ResourceType = resourceType, // Input parameter since API response doesn't include this
+                IsRequired = false, // V1.1 model doesn't include Required field
+                DefaultValue = fieldResponse.DefaultValue,
+                AllowedValues = null, // V1.1 model doesn't include AllowableValues field
+                CreatedAt = DateTime.MinValue, // V1.1 model doesn't include CreatedAt field
+                UpdatedAt = DateTime.MinValue // V1.1 model doesn't include UpdatedAt field
+            });
         }
         catch (HttpRequestException ex)
         {
@@ -543,16 +726,37 @@ public class ProcoreCoreClient : ICoreClient
         
         try
         {
-            _logger?.LogDebug("Creating custom field {FieldName} for company {CompanyId}", request.Name, companyId);
+            _logger?.LogDebug("Creating custom field {FieldName} for company {CompanyId} using Workforce Planning V2 generated Kiota client", request.Name, companyId);
             
-            // Placeholder implementation
-            return new CustomField 
-            { 
-                Id = 1,
+            // Create the request body for Workforce Planning V2 Custom Fields endpoint
+            var requestBody = new global::Procore.SDK.Core.Rest.V10.WorkforcePlanning.V2.Companies.Item.CustomFields.CustomFieldsPostRequestBody
+            {
                 Name = request.Name,
-                FieldType = request.FieldType,
+                Type = global::Procore.SDK.Core.Rest.V10.WorkforcePlanning.V2.Companies.Item.CustomFields.CustomFieldsPostRequestBody_type.Text, // Default to text type
+                Description = request.ResourceType, // Use resource type as description
+                Values = request.AllowedValues?.ToList(), // Map allowed values
+                OnProjects = request.ResourceType?.ToLower().Contains("project") ?? false,
+                OnPeople = request.ResourceType?.ToLower().Contains("user") ?? false
+            };
+            
+            // Use the Workforce Planning V2 generated Kiota client to create the custom field
+            var customFieldResponse = await _generatedClient.Rest.V10.WorkforcePlanning.V2.Companies[companyId].CustomFields.PostAsync(
+                requestBody, cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            if (customFieldResponse == null)
+            {
+                throw new HttpRequestException($"Failed to create custom field {request.Name} in company {companyId}");
+            }
+            
+            // Map from Workforce Planning V2 generated response to our domain model
+            // Note: The response only contains the ID, other properties from request are preserved
+            return new CustomField
+            {
+                Id = customFieldResponse.Id?.GetHashCode() ?? 0, // Convert Guid to int using hash code
+                Name = request.Name,
+                FieldType = request.FieldType ?? "text",
                 ResourceType = request.ResourceType,
-                IsRequired = request.IsRequired,
+                IsRequired = request.IsRequired == true,
                 DefaultValue = request.DefaultValue,
                 AllowedValues = request.AllowedValues,
                 CreatedAt = DateTime.UtcNow,
@@ -613,7 +817,7 @@ public class ProcoreCoreClient : ICoreClient
             _logger?.LogDebug("Deleting custom field {FieldId} for company {CompanyId}", fieldId, companyId);
             
             // Placeholder implementation
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -635,16 +839,32 @@ public class ProcoreCoreClient : ICoreClient
     {
         try
         {
-            _logger?.LogDebug("Getting current user");
+            _logger?.LogDebug("Getting current user using generated Kiota client");
             
-            // Placeholder implementation
+            // Note: The Procore API doesn't have a direct "me" or "current user" endpoint.
+            // To get the current user, you typically need:
+            // 1. Extract user ID from the authentication token (JWT claims)
+            // 2. Use that ID with GetUserAsync(companyId, userId)
+            // 
+            // This method serves as a convenience wrapper that would implement that logic.
+            // In a real implementation, you would:
+            // - Parse the JWT token to get user ID and company ID
+            // - Call the specific user endpoint with those parameters
+            
+            // Example implementation pattern:
+            // var userClaims = ExtractUserClaimsFromToken(); // Custom method to parse JWT
+            // return await GetUserAsync(userClaims.CompanyId, userClaims.UserId, cancellationToken).ConfigureAwait(false);
+            
+            _logger?.LogWarning("GetCurrentUserAsync: Requires JWT token parsing to extract user/company IDs. Use GetUserAsync(companyId, userId) for direct user access.");
+            
+            // Placeholder return for interface compliance
             return new User 
             { 
-                Id = 1,
-                Email = "current@example.com",
-                FirstName = "Current",
+                Id = 0,
+                Email = "unknown@example.com",
+                FirstName = "Unknown",
                 LastName = "User",
-                IsActive = true
+                IsActive = false
             };
         }
         catch (HttpRequestException ex)

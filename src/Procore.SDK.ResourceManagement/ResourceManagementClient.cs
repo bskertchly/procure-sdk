@@ -51,6 +51,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting resources for company {CompanyId}", companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<Resource>();
         }
         catch (HttpRequestException ex)
@@ -184,7 +185,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Deleting resource {ResourceId} for company {CompanyId}", resourceId, companyId);
             
             // Placeholder implementation
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -211,6 +212,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting resource allocations for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<ResourceAllocation>();
         }
         catch (HttpRequestException ex)
@@ -345,7 +347,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Releasing resource allocation {AllocationId} for project {ProjectId} in company {CompanyId}", allocationId, projectId, companyId);
             
             // Placeholder implementation
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -372,6 +374,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting workforce assignments for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<WorkforceAssignment>();
         }
         catch (HttpRequestException ex)
@@ -510,6 +513,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting capacity plans for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<CapacityPlan>();
         }
         catch (HttpRequestException ex)
@@ -579,6 +583,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting available resources for company {CompanyId} from {StartDate} to {EndDate}", companyId, startDate, endDate);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<Resource>();
         }
         catch (HttpRequestException ex)
@@ -601,6 +606,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting over-allocated resources for company {CompanyId}", companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<Resource>();
         }
         catch (HttpRequestException ex)
@@ -624,6 +630,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting utilization rate for resource {ResourceId} in company {CompanyId}", resourceId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return 78.5m;
         }
         catch (HttpRequestException ex)
@@ -647,6 +654,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting capacity analysis for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return new Dictionary<string, decimal>
             {
                 ["Equipment"] = 85.5m,
@@ -683,6 +691,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Optimizing resource allocation for project {ProjectId} in company {CompanyId} from {StartDate} to {EndDate}", projectId, companyId, startDate, endDate);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<Resource>();
         }
         catch (HttpRequestException ex)
@@ -706,6 +715,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting optimal workforce assignments for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<WorkforceAssignment>();
         }
         catch (HttpRequestException ex)
