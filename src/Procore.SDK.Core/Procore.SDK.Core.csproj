@@ -17,20 +17,39 @@
     <PackageReference Include="Microsoft.Kiota.Serialization.Text" />
     <PackageReference Include="Microsoft.Kiota.Serialization.Multipart" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Polly" />
+    <PackageReference Include="Polly.Extensions.Http" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Extensions.Logging" />
+    <PackageReference Include="Serilog.Enrichers.CorrelationId" />
+    <PackageReference Include="Serilog.Settings.Configuration" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Temporarily exclude problematic generated files that have nullable type issues -->
-    <Compile Remove="Generated/Rest/V10/Companies/Item/Files/Item/FilesPatchRequestBody_file.cs" />
-    <Compile Remove="Generated/Rest/V10/Companies/Item/Files/FilesPostRequestBody_fileMember1.cs" />
-    <Compile Remove="Generated/Rest/V10/Companies/Item/Files/FilesPostRequestBody_fileMember2.cs" />
-    <Compile Remove="Generated/Rest/V10/Companies/Item/Folders/Item/FoldersPatchRequestBody_folder.cs" />
-    <Compile Remove="Generated/Rest/V10/Companies/Item/Folders/FoldersPostRequestBody_folder.cs" />
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Files/Item/FilesPatchRequestBody_file.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Files/FilesPostRequestBody_fileMember1.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Files/FilesPostRequestBody_fileMember2.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Folders/Item/FoldersPatchRequestBody_folder.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Folders/FoldersPostRequestBody_folder.cs" /> -->
     <!-- Exclude files that reference the above problematic files -->
-    <Compile Remove="Generated/Rest/V10/Companies/Item/Files/FilesPostRequestBody.cs" />
-    <Compile Remove="Generated/Rest/V10/Companies/Item/Files/Item/FilesPatchRequestBody.cs" />
-    <Compile Remove="Generated/Rest/V10/Companies/Item/Folders/FoldersPostRequestBody.cs" />
-    <Compile Remove="Generated/Rest/V10/Companies/Item/Folders/Item/FoldersPatchRequestBody.cs" />
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Files/FilesPostRequestBody.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Files/Item/FilesPatchRequestBody.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Folders/FoldersPostRequestBody.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Folders/Item/FoldersPatchRequestBody.cs" /> -->
+    <!-- Exclude files that reference the request body classes -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Files/FilesRequestBuilder.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Files/Item/FilesItemRequestBuilder.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Folders/FoldersRequestBuilder.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/Folders/Item/FoldersItemRequestBuilder.cs" /> -->
+    <!-- Exclude the company builder that references the above builders -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/Item/WithCompany_ItemRequestBuilder.cs" /> -->
+    <!-- <Compile Remove="Generated/Rest/V10/Companies/CompaniesRequestBuilder.cs" /> -->
   </ItemGroup>
 
 </Project>
