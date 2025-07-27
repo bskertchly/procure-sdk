@@ -82,7 +82,7 @@ get_resource_config() {
     local key="$2"
     
     case "$resource.$key" in
-        "core.paths") echo "**/companies/**,**/company_users/**,**/users/**,**/folders-and-files/**,**/custom-fields/**,**/configurable-field-sets/**" ;;
+        "core.paths") echo "**/companies,**/companies/**,**/company_users/**,**/users/**,**/folders-and-files/**,**/custom-fields/**,**/configurable-field-sets/**" ;;
         "core.namespace") echo "Procore.SDK.Core" ;;
         "core.classname") echo "CoreClient" ;;
         "core.description") echo "Core functionality: companies, users, documents, custom fields" ;;
@@ -102,7 +102,7 @@ get_resource_config() {
         "construction-financials.classname") echo "ConstructionFinancialsClient" ;;
         "construction-financials.description") echo "Financial management: contracts, POs, budgets, change orders, invoices" ;;
         
-        "field-productivity.paths") echo "**/daily-logs/**,**/timecards/**,**/equipment/**,**/manpower/**,**/deliveries/**" ;;
+        "field-productivity.paths") echo "**/project_timecard_entries/**,**/timecard_entries/**,**/timecard_time_types/**,**/timesheets/**,**/project_timesheet_timecard_entries/**" ;;
         "field-productivity.namespace") echo "Procore.SDK.FieldProductivity" ;;
         "field-productivity.classname") echo "FieldProductivityClient" ;;
         "field-productivity.description") echo "Field operations: daily logs, timecards, equipment, manpower tracking" ;;
@@ -164,6 +164,52 @@ create_generated_directory() {
     fi
 }
 
+# Fix nullable pattern matching issues in generated code
+fix_nullable_patterns() {
+    local output_path="$1"
+    
+    print_info "Fixing nullable pattern matching issues..."
+    
+    # Find all C# files in the generated directory
+    local cs_files
+    cs_files=$(find "$output_path" -name "*.cs" -type f)
+    
+    if [[ -z "$cs_files" ]]; then
+        print_warning "No C# files found to fix"
+        return 0
+    fi
+    
+    local fixed_count=0
+    
+    # Process each file
+    while IFS= read -r file; do
+        if [[ -f "$file" ]]; then
+            # Create a temporary file for the fixed content
+            local temp_file="$file.tmp"
+            
+            # Fix the nullable list pattern matching using sed
+            # Pattern: List<int?> collection is List<int> -> List<int?> collection is List<int?>
+            if sed 's/List<int?>\([^>]*\) is List<int>/List<int?>\1 is List<int?>/g' "$file" > "$temp_file"; then
+                # Check if changes were made
+                if ! cmp -s "$file" "$temp_file"; then
+                    mv "$temp_file" "$file"
+                    ((fixed_count++))
+                else
+                    rm -f "$temp_file"
+                fi
+            else
+                rm -f "$temp_file"
+            fi
+        fi
+    done <<< "$cs_files"
+    
+    if [[ $fixed_count -gt 0 ]]; then
+        print_success "Fixed nullable patterns in $fixed_count files"
+    else
+        print_info "No nullable pattern fixes needed"
+    fi
+}
+
 # Generate client using Kiota
 generate_client() {
     local name="$1"
@@ -207,6 +253,10 @@ generate_client() {
             cat "temp_output.txt"
         fi
         rm -f "temp_output.txt" "temp_error.txt"
+        
+        # Fix nullable pattern matching issues in generated code
+        fix_nullable_patterns "$output_path"
+        
         return 0
     else
         print_error "Failed to generate $name client"

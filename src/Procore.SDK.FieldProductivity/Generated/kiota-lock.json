@@ -1,0 +1,40 @@
+{
+  "descriptionHash": "8D9977EA0448B3270126185BADE1C21C8C1F259C7856BF6DAA1FDC3FC7C783029D557DDA8234CC69965B344F3471E7885C7E0C0322602653E290F80AB6FB20A4",
+  "descriptionLocation": "../../../docs/rest_OAS_all.json",
+  "lockFileVersion": "1.0.0",
+  "kiotaVersion": "1.28.0",
+  "clientClassName": "FieldProductivityClient",
+  "typeAccessModifier": "Public",
+  "clientNamespaceName": "Procore.SDK.FieldProductivity",
+  "language": "CSharp",
+  "usesBackingStore": false,
+  "excludeBackwardCompatible": true,
+  "includeAdditionalData": true,
+  "disableSSLValidation": false,
+  "serializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Text.TextSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Form.FormSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Multipart.MultipartSerializationWriterFactory"
+  ],
+  "deserializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Text.TextParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Form.FormParseNodeFactory"
+  ],
+  "structuredMimeTypes": [
+    "application/json",
+    "text/plain;q=0.9",
+    "application/x-www-form-urlencoded;q=0.2",
+    "multipart/form-data;q=0.1"
+  ],
+  "includePatterns": [
+    "**/project_timecard_entries/**",
+    "**/timecard_entries/**",
+    "**/timecard_time_types/**",
+    "**/timesheets/**",
+    "**/project_timesheet_timecard_entries/**"
+  ],
+  "excludePatterns": [],
+  "disabledValidationRules": []
+}

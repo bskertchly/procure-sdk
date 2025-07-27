@@ -52,6 +52,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
             _logger?.LogDebug("Getting productivity reports for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<ProductivityReport>();
         }
         catch (HttpRequestException ex)
@@ -158,6 +159,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
             _logger?.LogDebug("Getting field activities for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<FieldActivity>();
         }
         catch (HttpRequestException ex)
@@ -257,6 +259,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
             _logger?.LogDebug("Getting resource utilization for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<ResourceUtilization>();
         }
         catch (HttpRequestException ex)
@@ -325,6 +328,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
             _logger?.LogDebug("Getting performance metrics for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<PerformanceMetric>();
         }
         catch (HttpRequestException ex)
@@ -395,6 +399,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
             _logger?.LogDebug("Getting average productivity rate for activity type {ActivityType} in project {ProjectId} in company {CompanyId}", activityType, projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return 15.5m;
         }
         catch (HttpRequestException ex)
@@ -418,6 +423,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
             _logger?.LogDebug("Getting productivity summary for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return new Dictionary<string, decimal>
             {
                 ["Concrete Pouring"] = 18.5m,
@@ -449,6 +455,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
             _logger?.LogDebug("Getting under-utilized resources (threshold: {Threshold}%) for project {ProjectId} in company {CompanyId}", threshold, projectId, companyId);
             
             // Placeholder implementation
+            await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<ResourceUtilization>();
         }
         catch (HttpRequestException ex)

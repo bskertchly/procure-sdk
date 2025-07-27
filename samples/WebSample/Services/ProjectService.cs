@@ -9,12 +9,12 @@ namespace WebSample.Services;
 /// </summary>
 public class ProjectService
 {
-    private readonly ICoreClient _coreClient;
+    private readonly ProcoreCoreClient _coreClient;
     private readonly ITokenManager _tokenManager;
     private readonly ILogger<ProjectService> _logger;
 
     public ProjectService(
-        ICoreClient coreClient,
+        ProcoreCoreClient coreClient,
         ITokenManager tokenManager,
         ILogger<ProjectService> logger)
     {
@@ -62,7 +62,7 @@ public class ProjectService
                     projects.Add(new ProjectSummary
                     {
                         Id = user.Id,
-                        Name = $"Project managed by {user.Name}",
+                        Name = $"Project managed by {user.FirstName} {user.LastName}",
                         Description = $"Construction project in {firstCompany.Name}",
                         Status = user.IsActive ? "Active" : "Inactive"
                     });

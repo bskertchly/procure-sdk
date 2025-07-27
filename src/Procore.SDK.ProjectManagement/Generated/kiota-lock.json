@@ -1,0 +1,40 @@
+{
+  "descriptionHash": "DCAE00FCC0BAC9210ED4CFFF6F21D822612E3406E62596F1F38B237ADD01DF82BDDEA06DCDAEA7E6120B1A6D4E757A0DE4577CB7357CC8BA5F313BA2F1E112F3",
+  "descriptionLocation": "../../../docs/rest_OAS_all.json",
+  "lockFileVersion": "1.0.0",
+  "kiotaVersion": "1.28.0",
+  "clientClassName": "ProjectManagementClient",
+  "typeAccessModifier": "Public",
+  "clientNamespaceName": "Procore.SDK.ProjectManagement",
+  "language": "CSharp",
+  "usesBackingStore": false,
+  "excludeBackwardCompatible": true,
+  "includeAdditionalData": true,
+  "disableSSLValidation": false,
+  "serializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Text.TextSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Form.FormSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Multipart.MultipartSerializationWriterFactory"
+  ],
+  "deserializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Text.TextParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Form.FormParseNodeFactory"
+  ],
+  "structuredMimeTypes": [
+    "application/json",
+    "text/plain;q=0.9",
+    "application/x-www-form-urlencoded;q=0.2",
+    "multipart/form-data;q=0.1"
+  ],
+  "includePatterns": [
+    "**/projects/**",
+    "**/workflows/**",
+    "**/task-items/**",
+    "**/project-assignments/**",
+    "**/project-users/**"
+  ],
+  "excludePatterns": [],
+  "disabledValidationRules": []
+}

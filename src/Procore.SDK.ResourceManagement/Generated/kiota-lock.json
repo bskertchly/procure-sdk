@@ -1,0 +1,38 @@
+{
+  "descriptionHash": "54802D992D5C95781701C9C61ED46F81B384FCCBF02B78D888A793F1610BCDD2F616BB2ABB98E84A5E28649D8E237F226310DC8137A6C63081F984A4FF022240",
+  "descriptionLocation": "../../../docs/rest_OAS_all.json",
+  "lockFileVersion": "1.0.0",
+  "kiotaVersion": "1.28.0",
+  "clientClassName": "ResourceManagementClient",
+  "typeAccessModifier": "Public",
+  "clientNamespaceName": "Procore.SDK.ResourceManagement",
+  "language": "CSharp",
+  "usesBackingStore": false,
+  "excludeBackwardCompatible": true,
+  "includeAdditionalData": true,
+  "disableSSLValidation": false,
+  "serializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Text.TextSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Form.FormSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Multipart.MultipartSerializationWriterFactory"
+  ],
+  "deserializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Text.TextParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Form.FormParseNodeFactory"
+  ],
+  "structuredMimeTypes": [
+    "application/json",
+    "text/plain;q=0.9",
+    "application/x-www-form-urlencoded;q=0.2",
+    "multipart/form-data;q=0.1"
+  ],
+  "includePatterns": [
+    "**/workforce/**",
+    "**/resources/**",
+    "**/assignments/**"
+  ],
+  "excludePatterns": [],
+  "disabledValidationRules": []
+}

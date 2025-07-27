@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using WebSample.Services;
 
 namespace WebSample.Models;
 
