@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CoreModels = Procore.SDK.Core.Models;
 
 namespace Procore.SDK.ProjectManagement.Models;
 
@@ -54,7 +55,7 @@ public interface IProjectManagementClient : IDisposable
     Task<IEnumerable<BudgetVariance>> GetBudgetVariancesAsync(int companyId, int projectId, decimal thresholdPercentage, CancellationToken cancellationToken = default);
 
     // Pagination Support
-    Task<PagedResult<Project>> GetProjectsPagedAsync(int companyId, PaginationOptions options, CancellationToken cancellationToken = default);
-    Task<PagedResult<BudgetLineItem>> GetBudgetLineItemsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
-    Task<PagedResult<CommitmentContract>> GetCommitmentContractsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<Project>> GetProjectsPagedAsync(int companyId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<BudgetLineItem>> GetBudgetLineItemsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<CommitmentContract>> GetCommitmentContractsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
 }
