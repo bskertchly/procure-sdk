@@ -11,6 +11,7 @@ env:
   DOTNET_VERSION: '8.0.x'
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 0
 
 jobs:
   test:
@@ -31,6 +32,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-quality: 'ga'
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -124,6 +126,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-quality: 'ga'
 
     - name: Restore dependencies
       run: dotnet restore
@@ -191,6 +194,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-quality: 'ga'
 
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v1.1.1
@@ -240,6 +244,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-quality: 'ga'
 
     - name: Restore dependencies
       run: dotnet restore
@@ -277,6 +282,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-quality: 'ga'
 
     - name: Restore dependencies
       run: dotnet restore
