@@ -48,14 +48,16 @@ public interface IProjectManagementClient : IDisposable
     Task<Meeting> CreateMeetingAsync(int companyId, int projectId, CreateMeetingRequest request, CancellationToken cancellationToken = default);
     Task<Meeting> UpdateMeetingAsync(int companyId, int projectId, int meetingId, CreateMeetingRequest request, CancellationToken cancellationToken = default);
 
-    // RFI Operations - TODO: Implement when RFI models are available
+    // RFI Operations - Not implemented in V1.0 API
+    // Future expansion: RFI operations would be available in V2.0 API
     // Task<IEnumerable<Rfi>> GetRfisAsync(int projectId, CancellationToken cancellationToken = default);
     // Task<Rfi> GetRfiAsync(int projectId, int rfiId, CancellationToken cancellationToken = default);
     // Task<Rfi> CreateRfiAsync(int projectId, CreateRfiRequest request, CancellationToken cancellationToken = default);
     // Task<Rfi> UpdateRfiAsync(int projectId, int rfiId, UpdateRfiRequest request, CancellationToken cancellationToken = default);
     // Task DeleteRfiAsync(int projectId, int rfiId, CancellationToken cancellationToken = default);
 
-    // Drawing Management Operations - TODO: Implement when Drawing models are available
+    // Drawing Management Operations - Not implemented in V1.0 API
+    // Future expansion: Drawing operations would be available in V2.0 API
     // Task<IEnumerable<Drawing>> GetDrawingsAsync(int projectId, CancellationToken cancellationToken = default);
     // Task<Drawing> GetDrawingAsync(int projectId, int drawingId, CancellationToken cancellationToken = default);
 
