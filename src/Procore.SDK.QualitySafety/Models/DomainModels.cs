@@ -91,6 +91,7 @@ public enum InspectionItemType
 {
     Text,
     CheckBox,
+    Checkbox, // Alias for CheckBox to handle various casing  
     MultipleChoice,
     Photo,
     Signature,
@@ -102,6 +103,7 @@ public enum InspectionItemStatus
 {
     NotStarted,
     InProgress,
+    Complete,
     Passed,
     Failed,
     NotApplicable
@@ -128,6 +130,7 @@ public enum IncidentSeverity
 {
     Minor,
     Moderate,
+    Major,
     Serious,
     Critical,
     Fatal

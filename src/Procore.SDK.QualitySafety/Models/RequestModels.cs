@@ -66,3 +66,34 @@ public class CreateComplianceCheckRequest
     public DateTime ScheduledDate { get; set; }
     public int? InspectorId { get; set; }
 }
+
+// Advanced Query Models
+public class SafetyIncidentFilters
+{
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo { get; set; }
+    public bool? Recordable { get; set; }
+    public string? Query { get; set; }
+    public int? PageSize { get; set; }
+    public int? Page { get; set; }
+}
+
+public class ObservationQueryOptions
+{
+    public ObservationStatus? Status { get; set; }
+    public ObservationPriority? Priority { get; set; }
+    public DateTime? CreatedAfter { get; set; }
+    public DateTime? CreatedBefore { get; set; }
+    public string? SearchText { get; set; }
+    public string? SortBy { get; set; }
+    public bool SortDescending { get; set; }
+    public int? Skip { get; set; }
+    public int? Take { get; set; }
+}
+
+// Bulk Operation Models
+public class BulkObservationUpdate
+{
+    public int ObservationId { get; set; }
+    public UpdateObservationRequest UpdateRequest { get; set; } = new();
+}
