@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -20,8 +21,10 @@ public class ErrorMapper
     /// <param name="httpException">The HTTP exception to map.</param>
     /// <param name="correlationId">Optional correlation ID for tracking.</param>
     /// <returns>A domain-specific exception.</returns>
-    public ProcoreCoreException MapHttpException(HttpRequestException httpException, string? correlationId = null)
+    public static ProcoreCoreException MapHttpException(HttpRequestException httpException, string? correlationId = null)
     {
+        ArgumentNullException.ThrowIfNull(httpException);
+        
         var statusCode = GetStatusCode(httpException);
         var responseBody = GetResponseBody(httpException);
 
@@ -84,11 +87,15 @@ public class ErrorMapper
     private static string? ExtractIdFromPath(HttpRequestException httpException)
     {
         if (!httpException.Data.Contains("RequestPath"))
+        {
             return null;
+        }
 
         var path = httpException.Data["RequestPath"]?.ToString();
         if (string.IsNullOrEmpty(path) || !IsValidPath(path))
+        {
             return null;
+        }
 
         // Extract ID from path like "/rest/v1.0/companies/123"
         var segments = path.Split('/');
@@ -106,7 +113,7 @@ public class ErrorMapper
         if (path.Contains("..") || 
             path.Contains("\\") ||
             path.Length > 2000 ||
-            !path.StartsWith("/"))
+            !path.StartsWith('/'))
         {
             return false;
         }
@@ -143,7 +150,9 @@ public class ErrorMapper
     private static TimeSpan ParseRetryAfter(string? retryAfterValue)
     {
         if (string.IsNullOrEmpty(retryAfterValue))
+        {
             return TimeSpan.Zero;
+        }
 
         // Try parsing as seconds first
         if (int.TryParse(retryAfterValue, out var seconds))
@@ -152,7 +161,7 @@ public class ErrorMapper
         }
 
         // Try parsing as HTTP date
-        if (DateTimeOffset.TryParse(retryAfterValue, out var dateTime))
+        if (DateTimeOffset.TryParse(retryAfterValue, CultureInfo.InvariantCulture, out var dateTime))
         {
             var retryAfter = dateTime - DateTimeOffset.UtcNow;
             return retryAfter > TimeSpan.Zero ? retryAfter : TimeSpan.Zero;
@@ -164,7 +173,9 @@ public class ErrorMapper
     private static Dictionary<string, object>? ParseResponseBody(string? responseBody)
     {
         if (string.IsNullOrEmpty(responseBody))
+        {
             return null;
+        }
 
         try
         {
@@ -179,48 +190,48 @@ public class ErrorMapper
     private static Dictionary<string, string[]>? ParseValidationErrors(string? responseBody)
     {
         if (string.IsNullOrEmpty(responseBody))
+        {
             return null;
+        }
 
         try
         {
             var response = JsonSerializer.Deserialize<Dictionary<string, object>>(responseBody);
             
-            if (response?.TryGetValue("errors", out var errorsObj) == true)
+            if (response?.TryGetValue("errors", out var errorsObj) == true &&
+                errorsObj is JsonElement errorsElement && errorsElement.ValueKind == JsonValueKind.Object)
             {
-                if (errorsObj is JsonElement errorsElement && errorsElement.ValueKind == JsonValueKind.Object)
+                var validationErrors = new Dictionary<string, string[]>();
+                
+                foreach (var property in errorsElement.EnumerateObject())
                 {
-                    var validationErrors = new Dictionary<string, string[]>();
-                    
-                    foreach (var property in errorsElement.EnumerateObject())
+                    if (property.Value.ValueKind == JsonValueKind.Array)
                     {
-                        if (property.Value.ValueKind == JsonValueKind.Array)
+                        var messages = new List<string>();
+                        foreach (var item in property.Value.EnumerateArray())
                         {
-                            var messages = new List<string>();
-                            foreach (var item in property.Value.EnumerateArray())
+                            if (item.ValueKind == JsonValueKind.String)
                             {
-                                if (item.ValueKind == JsonValueKind.String)
+                                var message = item.GetString();
+                                if (!string.IsNullOrEmpty(message) && IsValidErrorMessage(message))
                                 {
-                                    var message = item.GetString();
-                                    if (!string.IsNullOrEmpty(message) && IsValidErrorMessage(message))
-                                    {
-                                        messages.Add(message);
-                                    }
+                                    messages.Add(message);
                                 }
                             }
-                            validationErrors[property.Name] = messages.ToArray();
                         }
-                        else if (property.Value.ValueKind == JsonValueKind.String)
+                        validationErrors[property.Name] = messages.ToArray();
+                    }
+                    else if (property.Value.ValueKind == JsonValueKind.String)
+                    {
+                        var message = property.Value.GetString();
+                        if (!string.IsNullOrEmpty(message) && IsValidErrorMessage(message))
                         {
-                            var message = property.Value.GetString();
-                            if (!string.IsNullOrEmpty(message) && IsValidErrorMessage(message))
-                            {
-                                validationErrors[property.Name] = new[] { message };
-                            }
+                            validationErrors[property.Name] = new[] { message };
                         }
                     }
-                    
-                    return validationErrors.Count > 0 ? validationErrors : null;
                 }
+                
+                return validationErrors.Count > 0 ? validationErrors : null;
             }
             
             return null;
@@ -239,7 +250,9 @@ public class ErrorMapper
     private static bool IsValidErrorMessage(string message)
     {
         if (string.IsNullOrWhiteSpace(message))
+        {
             return false;
+        }
 
         // Block messages that might contain sensitive information
         var lowerMessage = message.ToLowerInvariant();
@@ -255,7 +268,7 @@ public class ErrorMapper
             lowerMessage.Contains("internal server error") ||
             lowerMessage.Contains("file not found") ||
             lowerMessage.Contains("path") ||
-            message.Length > 500) // Prevent overly long messages
+            message.Length > 500)
         {
             return false;
         }
