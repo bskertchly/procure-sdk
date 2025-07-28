@@ -7,6 +7,11 @@ using GeneratedFlag = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.GetRe
 using GeneratedCompany = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.GetResponse_company;
 using GeneratedProjectType = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.GetResponse_project_type;
 using GeneratedProjectStage = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.GetResponse_project_stage;
+using PatchGeneratedProject = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.PatchResponse;
+using PatchGeneratedFlag = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.PatchResponse_flag;
+using PatchGeneratedCompany = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.PatchResponse_company;
+using PatchGeneratedProjectType = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.PatchResponse_project_type;
+using PatchGeneratedProjectStage = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.PatchResponse_project_stage;
 
 namespace Procore.SDK.ProjectManagement.TypeMapping;
 
@@ -149,6 +154,57 @@ public class ProjectTypeMapper : BaseTypeMapper<Project, GeneratedProject>
             ProjectPhase.PostConstruction => "Post-Construction",
             ProjectPhase.Closeout => "Closeout",
             _ => "Construction"
+        };
+    }
+
+    /// <summary>
+    /// Maps from generated Kiota PatchResponse to wrapper Project domain model.
+    /// This is used specifically for PATCH operations which return a different response type.
+    /// </summary>
+    /// <param name="source">The generated PatchResponse to map from</param>
+    /// <returns>The mapped Project domain model</returns>
+    public Project MapToWrapper(PatchGeneratedProject source)
+    {
+        try
+        {
+            return new Project
+            {
+                Id = source.Id ?? 0,
+                Name = source.Name ?? string.Empty,
+                Description = source.Description ?? string.Empty,
+                Status = MapPatchGeneratedStatusToWrapper(source.Flag),
+                StartDate = MapDateToDateTime(source.StartDate),
+                EndDate = MapDateToDateTime(source.CompletionDate),
+                CompanyId = source.Company?.Id ?? 0,
+                Budget = ParseBudgetAmount(source.TotalValue),
+                ProjectType = source.ProjectType?.Name ?? string.Empty,
+                Phase = MapToProjectPhase(source.ProjectStage?.Name),
+                IsActive = source.Active ?? false,
+                CreatedAt = MapDateTime(source.CreatedAt),
+                UpdatedAt = MapDateTime(source.UpdatedAt)
+            };
+        }
+        catch (Exception ex)
+        {
+            throw new TypeMappingException(
+                $"Failed to map PatchResponse to Project: {ex.Message}",
+                ex,
+                typeof(PatchGeneratedProject),
+                typeof(Project));
+        }
+    }
+
+    /// <summary>
+    /// Maps patch response generated flag enum to wrapper project status enum.
+    /// </summary>
+    private static ProjectStatus MapPatchGeneratedStatusToWrapper(PatchGeneratedFlag? flag)
+    {
+        return flag switch
+        {
+            PatchGeneratedFlag.Green => ProjectStatus.Active,
+            PatchGeneratedFlag.Yellow => ProjectStatus.OnHold,
+            PatchGeneratedFlag.Red => ProjectStatus.Cancelled,
+            _ => ProjectStatus.Planning
         };
     }
 

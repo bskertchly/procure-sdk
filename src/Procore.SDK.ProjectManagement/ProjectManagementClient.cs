@@ -24,6 +24,7 @@ namespace Procore.SDK.ProjectManagement;
 public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementClient
 {
     private readonly Procore.SDK.ProjectManagement.ProjectManagementClient _generatedClient;
+    private readonly IRequestAdapter _requestAdapter;
     private readonly ILogger<ProcoreProjectManagementClient>? _logger;
     private readonly ErrorMapper? _errorMapper;
     private readonly StructuredLogger? _structuredLogger;
@@ -51,6 +52,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
         ITypeMapper<Project, GeneratedProject>? projectMapper = null)
     {
         _generatedClient = new Procore.SDK.ProjectManagement.ProjectManagementClient(requestAdapter);
+        _requestAdapter = requestAdapter;
         _logger = logger;
         _errorMapper = errorMapper;
         _structuredLogger = structuredLogger;
@@ -87,7 +89,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             
             throw mappedException;
         }
-        catch (TaskCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             _structuredLogger?.LogWarning(operationName, correlationId,
                 "Operation {Operation} was cancelled", operationName);
@@ -124,6 +126,68 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
         }, operationName, correlationId, cancellationToken);
     }
 
+    /// <summary>
+    /// Maps a Core project model to a ProjectManagement project model.
+    /// </summary>
+    /// <param name="coreProject">The Core project model.</param>
+    /// <param name="companyId">The company ID to set in the mapped project.</param>
+    /// <returns>The ProjectManagement project model.</returns>
+    private ProjectModels.Project MapCoreProjectToProjectManagement(Procore.SDK.Core.Rest.V10.Companies.Item.Projects.Projects coreProject, int companyId)
+    {
+        return new ProjectModels.Project
+        {
+            Id = coreProject.Id ?? 0,
+            Name = coreProject.Name ?? string.Empty,
+            Description = string.Empty, // Core model doesn't include description
+            Status = ProjectModels.ProjectStatus.Active, // Default status as Core model doesn't map directly
+            StartDate = null, // Core model doesn't include dates in this response
+            EndDate = null,
+            CompanyId = companyId,
+            Budget = null, // Core model doesn't include budget in list response
+            ProjectType = string.Empty, // Core model doesn't include type in list response
+            Phase = ProjectModels.ProjectPhase.Construction, // Default phase
+            IsActive = true, // Assume active since it's returned in the list
+            CreatedAt = DateTime.UtcNow, // Core model doesn't include timestamps in list response
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// Maps generated budget change status to wrapper domain model status.
+    /// </summary>
+    /// <param name="status">The generated budget change status.</param>
+    /// <returns>The mapped wrapper domain model status.</returns>
+    private static ProjectModels.BudgetChangeStatus MapGeneratedBudgetChangeStatusToWrapper(
+        Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesGetResponse_data_status? status)
+    {
+        return status switch
+        {
+            Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesGetResponse_data_status.Draft => ProjectModels.BudgetChangeStatus.Draft,
+            Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesGetResponse_data_status.Approved => ProjectModels.BudgetChangeStatus.Approved,
+            Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesGetResponse_data_status.Under_review => ProjectModels.BudgetChangeStatus.UnderReview,
+            Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesGetResponse_data_status.Void => ProjectModels.BudgetChangeStatus.Void,
+            _ => ProjectModels.BudgetChangeStatus.Draft
+        };
+    }
+
+    /// <summary>
+    /// Maps generated budget change POST response status to wrapper domain model status.
+    /// </summary>
+    /// <param name="status">The generated budget change POST response status.</param>
+    /// <returns>The mapped wrapper domain model status.</returns>
+    private static ProjectModels.BudgetChangeStatus MapGeneratedBudgetChangePostStatusToWrapper(
+        Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesPostResponse_data_status? status)
+    {
+        return status switch
+        {
+            Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesPostResponse_data_status.Draft => ProjectModels.BudgetChangeStatus.Draft,
+            Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesPostResponse_data_status.Approved => ProjectModels.BudgetChangeStatus.Approved,
+            Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesPostResponse_data_status.Under_review => ProjectModels.BudgetChangeStatus.UnderReview,
+            Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesPostResponse_data_status.Void => ProjectModels.BudgetChangeStatus.Void,
+            _ => ProjectModels.BudgetChangeStatus.Draft
+        };
+    }
+
     #endregion
 
     #region Project Operations
@@ -141,9 +205,20 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             {
                 _logger?.LogDebug("Getting projects for company {CompanyId}", companyId);
                 
-                // TODO: Replace with actual implementation using generated client
-                // This is currently a placeholder implementation
-                return Enumerable.Empty<ProjectModels.Project>();
+                // Use Core client to access the company projects endpoint since
+                // ProjectManagement client doesn't have a projects listing endpoint
+                var coreClient = new Procore.SDK.Core.CoreClient(_requestAdapter);
+                var coreProjects = await coreClient.Rest.V10.Companies[companyId].Projects
+                    .GetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                
+                if (coreProjects == null || !coreProjects.Any())
+                {
+                    _logger?.LogWarning("No projects returned for company {CompanyId}", companyId);
+                    return Enumerable.Empty<ProjectModels.Project>();
+                }
+                
+                // Map from Core generated models to ProjectManagement domain models
+                return coreProjects.Select(p => MapCoreProjectToProjectManagement(p, companyId));
             },
             $"GetProjects-Company-{companyId}",
             null,
@@ -191,37 +266,18 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <param name="request">The project creation request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The created project.</returns>
-    public async Task<ProjectModels.Project> CreateProjectAsync(int companyId, ProjectModels.CreateProjectRequest request, CancellationToken cancellationToken = default)
+    public Task<ProjectModels.Project> CreateProjectAsync(int companyId, ProjectModels.CreateProjectRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        return await ExecuteWithResilienceAsync(
-            async () =>
-            {
-                _logger?.LogDebug("Creating project {ProjectName} for company {CompanyId}", request.Name, companyId);
-                
-                // TODO: Replace with actual implementation using generated client
-                // This is currently a placeholder implementation
-                return new Project 
-                { 
-                    Id = 1,
-                    CompanyId = companyId,
-                    Name = request.Name,
-                    Description = request.Description,
-                    StartDate = request.StartDate,
-                    EndDate = request.EndDate,
-                    Budget = request.Budget,
-                    ProjectType = request.ProjectType,
-                    Status = ProjectStatus.Planning,
-                    Phase = ProjectPhase.PreConstruction,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-            },
-            $"CreateProject-{request.Name}-Company-{companyId}",
-            null,
-            cancellationToken);
+        _logger?.LogDebug("Attempting to create project {ProjectName} for company {CompanyId}", request.Name, companyId);
+        
+        // Note: This is a placeholder implementation as the V1.0 API does not
+        // provide a project creation endpoint. This would typically be handled
+        // through the Procore web interface or higher version APIs.
+        return Task.FromException<ProjectModels.Project>(new NotImplementedException(
+            "Project creation is not supported in the V1.0 API. " +
+            "Please use the Procore web interface or contact your administrator."));
     }
 
     /// <summary>
@@ -236,30 +292,68 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
-        {
-            _logger?.LogDebug("Updating project {ProjectId} for company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            return new Project 
-            { 
-                Id = projectId,
-                CompanyId = companyId,
-                Name = request.Name ?? "Updated Project",
-                Description = request.Description ?? "Updated Description",
-                Status = request.Status ?? ProjectStatus.Active,
-                StartDate = request.StartDate,
-                EndDate = request.EndDate,
-                Budget = request.Budget,
-                IsActive = true,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to update project {ProjectId} for company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Updating project {ProjectId} for company {CompanyId}", projectId, companyId);
+                
+                // Create the PATCH request body for the generated client
+                var patchRequestBody = new Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.PatchRequestBody
+                {
+                    CompanyId = companyId,
+                    Project = new Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.PatchRequestBody_project()
+                };
+
+                // Map from domain request to generated request
+                if (!string.IsNullOrEmpty(request.Name))
+                {
+                    patchRequestBody.Project.Name = request.Name;
+                }
+
+                if (!string.IsNullOrEmpty(request.Description))
+                {
+                    patchRequestBody.Project.Description = request.Description;
+                }
+
+                if (request.StartDate.HasValue)
+                {
+                    patchRequestBody.Project.StartDate = DateOnly.FromDateTime(request.StartDate.Value);
+                }
+
+                if (request.EndDate.HasValue)
+                {
+                    patchRequestBody.Project.CompletionDate = DateOnly.FromDateTime(request.EndDate.Value);
+                }
+
+                if (request.Budget.HasValue)
+                {
+                    patchRequestBody.Project.TotalValue = (float)request.Budget.Value;
+                }
+
+                // Map status - for now just set active flag based on status
+                if (request.Status.HasValue)
+                {
+                    patchRequestBody.Project.Active = request.Status.Value == ProjectStatus.Active;
+                }
+                
+                // Call the generated client
+                var patchResponse = await _generatedClient.Rest.V10.Projects[projectId]
+                    .PatchAsync(patchRequestBody, cancellationToken: cancellationToken);
+                
+                if (patchResponse == null)
+                {
+                    throw new CoreModels.ProcoreCoreException(
+                        $"Failed to update project {projectId} in company {companyId}",
+                        "PROJECT_UPDATE_FAILED",
+                        null);
+                }
+
+                // Map the response back to our domain model using the patch response overload
+                return ((ProjectTypeMapper)_projectMapper!).MapToWrapper(patchResponse);
+            },
+            $"UpdateProject-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -268,20 +362,17 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
-    public async Task DeleteProjectAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="NotImplementedException">Thrown because project deletion is not supported in V1.0 API.</exception>
+    public Task DeleteProjectAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Deleting project {ProjectId} for company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to delete project {ProjectId} for company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        _logger?.LogDebug("Attempting to delete project {ProjectId} for company {CompanyId}", projectId, companyId);
+        
+        // Note: Project deletion is not supported in the V1.0 API
+        // This would typically be handled through administrative functions
+        return Task.FromException(new NotImplementedException(
+            "Project deletion is not supported in the V1.0 API. " +
+            "Please use the Procore web interface or contact your administrator."));
     }
 
     #endregion
@@ -290,6 +381,8 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
 
     /// <summary>
     /// Gets all budget line items for a project.
+    /// Note: V1.0 API only provides budget lock status. For detailed budget line items, 
+    /// V2.0 API would be required but is not currently supported by this client.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -297,55 +390,69 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <returns>A collection of budget line items.</returns>
     public async Task<IEnumerable<ProjectModels.BudgetLineItem>> GetBudgetLineItemsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting budget line items for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<BudgetLineItem>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get budget line items for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting budget information for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                
+                // Call the generated V1.0 budget endpoint
+                var budgetResponse = await _generatedClient.Rest.V10.Projects[projectId].Budget
+                    .GetAsync(cancellationToken: cancellationToken);
+                
+                if (budgetResponse == null)
+                {
+                    _logger?.LogWarning("No budget information returned for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                    return Enumerable.Empty<ProjectModels.BudgetLineItem>();
+                }
+
+                // V1.0 API only provides budget lock status, not detailed line items
+                // Create a single placeholder line item to indicate budget exists but details require V2.0 API
+                if (budgetResponse.Locked.HasValue)
+                {
+                    var budgetLineItem = new BudgetLineItem
+                    {
+                        Id = 1,
+                        ProjectId = projectId,
+                        WbsCode = "N/A",
+                        Description = budgetResponse.Locked.Value ? "Budget (Locked)" : "Budget (Unlocked)",
+                        BudgetAmount = 0m, // V1.0 doesn't provide amounts
+                        ActualAmount = 0m,
+                        VarianceAmount = 0m,
+                        CostCode = "N/A",
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    
+                    return new[] { budgetLineItem };
+                }
+
+                return Enumerable.Empty<ProjectModels.BudgetLineItem>();
+            },
+            $"GetBudgetLineItems-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
     /// Gets a specific budget line item by ID.
+    /// Note: V1.0 API does not provide detailed budget line item endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for full functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
     /// <param name="lineItemId">The budget line item ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The budget line item.</returns>
-    public async Task<ProjectModels.BudgetLineItem> GetBudgetLineItemAsync(int companyId, int projectId, int lineItemId, CancellationToken cancellationToken = default)
+    /// <exception cref="NotImplementedException">Thrown because detailed budget line items are not supported in V1.0 API.</exception>
+    public Task<ProjectModels.BudgetLineItem> GetBudgetLineItemAsync(int companyId, int projectId, int lineItemId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting budget line item {LineItemId} for project {ProjectId} in company {CompanyId}", lineItemId, projectId, companyId);
-            
-            // Placeholder implementation
-            return new BudgetLineItem 
-            { 
-                Id = lineItemId,
-                ProjectId = projectId,
-                WbsCode = "1.1.1",
-                Description = "Placeholder Budget Line Item",
-                BudgetAmount = 10000m,
-                ActualAmount = 8500m,
-                VarianceAmount = -1500m,
-                CostCode = "01000",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get budget line item {LineItemId} for project {ProjectId} in company {CompanyId}", lineItemId, projectId, companyId);
-            throw;
-        }
+        _logger?.LogDebug("Attempting to get budget line item {LineItemId} for project {ProjectId} in company {CompanyId}", lineItemId, projectId, companyId);
+        
+        // Note: V1.0 API does not provide detailed budget line item endpoints
+        // For detailed budget information, V2.0 API would be required
+        return Task.FromException<ProjectModels.BudgetLineItem>(new NotImplementedException(
+            "Detailed budget line item retrieval is not supported in the V1.0 API. " +
+            "Use GetBudgetLineItemsAsync for available budget information or upgrade to V2.0 API."));
     }
 
     /// <summary>
@@ -360,28 +467,59 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
-        {
-            _logger?.LogDebug("Creating budget change for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            return new BudgetChange 
-            { 
-                Id = 1,
-                ProjectId = projectId,
-                Description = request.Description,
-                Amount = request.Amount,
-                Status = BudgetChangeStatus.Draft,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = 1,
-                LineItems = request.LineItems
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to create budget change for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Creating budget change for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                
+                // Create the POST request body for the generated client
+                var postRequestBody = new Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesPostRequestBody
+                {
+                    Description = request.Description,
+                    Status = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesPostRequestBody_status.Draft,
+                };
+
+                // Map line items from domain request to generated request format
+                if (request.LineItems?.Count > 0)
+                {
+                    postRequestBody.AdjustmentLineItems = request.LineItems.Select(lineItem => 
+                        new Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesPostRequestBody_adjustment_line_items
+                        {
+                            Amount = (double)lineItem.Amount,
+                            Description = lineItem.Reason,
+                            Type = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Budget_changes.Budget_changesPostRequestBody_adjustment_line_items_type.Budget_change,
+                            AdjustmentNumber = 1 // Default adjustment number
+                        }).ToList();
+                }
+
+                // Call the generated client
+                var postResponse = await _generatedClient.Rest.V10.Projects[projectId].Budget_changes
+                    .PostAsync(postRequestBody, cancellationToken: cancellationToken);
+                
+                if (postResponse?.Data == null)
+                {
+                    throw new CoreModels.ProcoreCoreException(
+                        $"Failed to create budget change for project {projectId} in company {companyId}",
+                        "BUDGET_CHANGE_CREATE_FAILED",
+                        null);
+                }
+
+                // Map the response back to our domain model
+                return new BudgetChange
+                {
+                    Id = postResponse.Data.Id ?? 0,
+                    ProjectId = projectId,
+                    Description = postResponse.Data.Description ?? string.Empty,
+                    Amount = request.Amount, // Use the original request amount since POST response doesn't include amount
+                    Status = MapGeneratedBudgetChangePostStatusToWrapper(postResponse.Data.Status),
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = 0, // POST response doesn't include created_by info
+                    LineItems = request.LineItems ?? new List<BudgetLineItemChange>()
+                };
+            },
+            $"CreateBudgetChange-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -393,19 +531,37 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <returns>A collection of budget changes.</returns>
     public async Task<IEnumerable<ProjectModels.BudgetChange>> GetBudgetChangesAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting budget changes for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<BudgetChange>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get budget changes for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting budget changes for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                
+                // Call the generated client
+                var budgetChangesResponse = await _generatedClient.Rest.V10.Projects[projectId].Budget_changes
+                    .GetAsync(cancellationToken: cancellationToken);
+                
+                if (budgetChangesResponse?.Data == null || budgetChangesResponse.Data.Count == 0)
+                {
+                    _logger?.LogWarning("No budget changes returned for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                    return Enumerable.Empty<ProjectModels.BudgetChange>();
+                }
+
+                // Map from generated response to domain models
+                return budgetChangesResponse.Data.Select(data => new BudgetChange
+                {
+                    Id = data.Id ?? 0,
+                    ProjectId = projectId,
+                    Description = data.Description ?? string.Empty,
+                    Amount = (decimal)(data.Amount ?? 0.0),
+                    Status = MapGeneratedBudgetChangeStatusToWrapper(data.Status),
+                    CreatedAt = DateTime.UtcNow, // Generated model doesn't include created_at in GET response
+                    CreatedBy = (int)(data.CreatedBy?.Id ?? 0),
+                    LineItems = new List<BudgetLineItemChange>() // Line items would need additional API calls
+                });
+            },
+            $"GetBudgetChanges-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     #endregion
@@ -414,6 +570,8 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
 
     /// <summary>
     /// Gets all commitment contracts for a project.
+    /// Note: V1.0 API does not provide commitment contract endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -421,96 +579,70 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <returns>A collection of commitment contracts.</returns>
     public async Task<IEnumerable<ProjectModels.CommitmentContract>> GetCommitmentContractsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting commitment contracts for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<CommitmentContract>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get commitment contracts for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting commitment contracts for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                
+                // Note: V1.0 API does not provide commitment contract endpoints
+                // Return empty collection for now - would require V2.0 API implementation
+                await Task.CompletedTask.ConfigureAwait(false);
+                return Enumerable.Empty<CommitmentContract>();
+            },
+            $"GetCommitmentContracts-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
     /// Gets a specific commitment contract by ID.
+    /// Note: V1.0 API does not provide commitment contract endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
     /// <param name="contractId">The contract ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The commitment contract.</returns>
-    public async Task<ProjectModels.CommitmentContract> GetCommitmentContractAsync(int companyId, int projectId, int contractId, CancellationToken cancellationToken = default)
+    /// <exception cref="NotImplementedException">Thrown because commitment contracts are not supported in V1.0 API.</exception>
+    public Task<ProjectModels.CommitmentContract> GetCommitmentContractAsync(int companyId, int projectId, int contractId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting commitment contract {ContractId} for project {ProjectId} in company {CompanyId}", contractId, projectId, companyId);
-            
-            // Placeholder implementation
-            return new CommitmentContract 
-            { 
-                Id = contractId,
-                ProjectId = projectId,
-                Title = "Placeholder Contract",
-                ContractNumber = "C-001",
-                ContractAmount = 50000m,
-                Status = ContractStatus.Draft,
-                VendorId = 1,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get commitment contract {ContractId} for project {ProjectId} in company {CompanyId}", contractId, projectId, companyId);
-            throw;
-        }
+        _logger?.LogDebug("Attempting to get commitment contract {ContractId} for project {ProjectId} in company {CompanyId}", contractId, projectId, companyId);
+        
+        // Note: V1.0 API does not provide commitment contract endpoints
+        return Task.FromException<ProjectModels.CommitmentContract>(new NotImplementedException(
+            "Commitment contract retrieval is not supported in the V1.0 API. " +
+            "Please upgrade to V2.0 API for commitment contract functionality."));
     }
 
     /// <summary>
     /// Creates a new change order.
+    /// Note: V1.0 API does not provide change order creation endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
     /// <param name="request">The change order creation request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The created change order.</returns>
-    public async Task<ProjectModels.ChangeOrder> CreateChangeOrderAsync(int companyId, int projectId, ProjectModels.CreateChangeOrderRequest request, CancellationToken cancellationToken = default)
+    /// <exception cref="ArgumentNullException">Thrown when request is null.</exception>
+    /// <exception cref="NotImplementedException">Thrown because change order creation is not supported in V1.0 API.</exception>
+    public Task<ProjectModels.ChangeOrder> CreateChangeOrderAsync(int companyId, int projectId, ProjectModels.CreateChangeOrderRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
-        {
-            _logger?.LogDebug("Creating change order for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            return new ChangeOrder 
-            { 
-                Id = 1,
-                ProjectId = projectId,
-                ContractId = request.ContractId,
-                Title = request.Title,
-                Number = request.Number,
-                Amount = request.Amount,
-                Status = ChangeOrderStatus.Draft,
-                Type = request.Type,
-                Description = request.Description,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to create change order for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        _logger?.LogDebug("Attempting to create change order for project {ProjectId} in company {CompanyId}", projectId, companyId);
+        
+        // Note: V1.0 API does not provide change order creation endpoints
+        return Task.FromException<ProjectModels.ChangeOrder>(new NotImplementedException(
+            "Change order creation is not supported in the V1.0 API. " +
+            "Please upgrade to V2.0 API for change order functionality."));
     }
 
     /// <summary>
     /// Gets all change orders for a project.
+    /// Note: V1.0 API does not provide change order endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -518,19 +650,19 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <returns>A collection of change orders.</returns>
     public async Task<IEnumerable<ProjectModels.ChangeOrder>> GetChangeOrdersAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting change orders for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<ChangeOrder>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get change orders for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting change orders for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                
+                // Note: V1.0 API does not provide change order endpoints
+                // Return empty collection for now - would require V2.0 API implementation
+                await Task.CompletedTask.ConfigureAwait(false);
+                return Enumerable.Empty<ChangeOrder>();
+            },
+            $"GetChangeOrders-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     #endregion
@@ -539,6 +671,8 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
 
     /// <summary>
     /// Gets all workflow instances for a project.
+    /// Note: V1.0 API does not provide workflow endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -546,97 +680,82 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <returns>A collection of workflow instances.</returns>
     public async Task<IEnumerable<ProjectModels.WorkflowInstance>> GetWorkflowInstancesAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting workflow instances for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<WorkflowInstance>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get workflow instances for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting workflow instances for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                
+                // Note: V1.0 API does not provide workflow endpoints
+                // Return empty collection for now - would require V2.0 API implementation
+                await Task.CompletedTask.ConfigureAwait(false);
+                return Enumerable.Empty<WorkflowInstance>();
+            },
+            $"GetWorkflowInstances-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
     /// Gets a specific workflow instance by ID.
+    /// Note: V1.0 API does not provide workflow endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
     /// <param name="workflowId">The workflow instance ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The workflow instance.</returns>
-    public async Task<ProjectModels.WorkflowInstance> GetWorkflowInstanceAsync(int companyId, int projectId, int workflowId, CancellationToken cancellationToken = default)
+    /// <exception cref="NotImplementedException">Thrown because workflow instances are not supported in V1.0 API.</exception>
+    public Task<ProjectModels.WorkflowInstance> GetWorkflowInstanceAsync(int companyId, int projectId, int workflowId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
-            
-            // Placeholder implementation
-            return new WorkflowInstance 
-            { 
-                Id = workflowId,
-                ProjectId = projectId,
-                Title = "Placeholder Workflow",
-                Status = WorkflowStatus.Active,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = 1
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
-            throw;
-        }
+        _logger?.LogDebug("Attempting to get workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
+        
+        // Note: V1.0 API does not provide workflow endpoints
+        return Task.FromException<ProjectModels.WorkflowInstance>(new NotImplementedException(
+            "Workflow instance retrieval is not supported in the V1.0 API. " +
+            "Please upgrade to V2.0 API for workflow functionality."));
     }
 
     /// <summary>
     /// Restarts a workflow instance.
+    /// Note: V1.0 API does not provide workflow endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
     /// <param name="workflowId">The workflow instance ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
-    public async Task RestartWorkflowAsync(int companyId, int projectId, int workflowId, CancellationToken cancellationToken = default)
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="NotImplementedException">Thrown because workflow operations are not supported in V1.0 API.</exception>
+    public Task RestartWorkflowAsync(int companyId, int projectId, int workflowId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Restarting workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to restart workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
-            throw;
-        }
+        _logger?.LogDebug("Attempting to restart workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
+        
+        // Note: V1.0 API does not provide workflow endpoints
+        return Task.FromException(new NotImplementedException(
+            "Workflow operations are not supported in the V1.0 API. " +
+            "Please upgrade to V2.0 API for workflow functionality."));
     }
 
     /// <summary>
     /// Terminates a workflow instance.
+    /// Note: V1.0 API does not provide workflow endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
     /// <param name="workflowId">The workflow instance ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
-    public async Task TerminateWorkflowAsync(int companyId, int projectId, int workflowId, CancellationToken cancellationToken = default)
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="NotImplementedException">Thrown because workflow operations are not supported in V1.0 API.</exception>
+    public Task TerminateWorkflowAsync(int companyId, int projectId, int workflowId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Terminating workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to terminate workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
-            throw;
-        }
+        _logger?.LogDebug("Attempting to terminate workflow instance {WorkflowId} for project {ProjectId} in company {CompanyId}", workflowId, projectId, companyId);
+        
+        // Note: V1.0 API does not provide workflow endpoints
+        return Task.FromException(new NotImplementedException(
+            "Workflow operations are not supported in the V1.0 API. " +
+            "Please upgrade to V2.0 API for workflow functionality."));
     }
 
     #endregion
@@ -645,6 +764,8 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
 
     /// <summary>
     /// Gets all meetings for a project.
+    /// Note: V1.0 API does not provide meeting endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -652,95 +773,70 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <returns>A collection of meetings.</returns>
     public async Task<IEnumerable<ProjectModels.Meeting>> GetMeetingsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting meetings for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<Meeting>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get meetings for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting meetings for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                
+                // Note: V1.0 API does not provide meeting endpoints
+                // Return empty collection for now - would require V2.0 API implementation
+                await Task.CompletedTask.ConfigureAwait(false);
+                return Enumerable.Empty<Meeting>();
+            },
+            $"GetMeetings-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
     /// Gets a specific meeting by ID.
+    /// Note: V1.0 API does not provide meeting endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
     /// <param name="meetingId">The meeting ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The meeting.</returns>
-    public async Task<ProjectModels.Meeting> GetMeetingAsync(int companyId, int projectId, int meetingId, CancellationToken cancellationToken = default)
+    /// <exception cref="NotImplementedException">Thrown because meeting operations are not supported in V1.0 API.</exception>
+    public Task<ProjectModels.Meeting> GetMeetingAsync(int companyId, int projectId, int meetingId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting meeting {MeetingId} for project {ProjectId} in company {CompanyId}", meetingId, projectId, companyId);
-            
-            // Placeholder implementation
-            return new Meeting 
-            { 
-                Id = meetingId,
-                ProjectId = projectId,
-                Title = "Placeholder Meeting",
-                ScheduledDate = DateTime.UtcNow.AddDays(7),
-                Location = "Conference Room A",
-                Status = MeetingStatus.Scheduled,
-                AttendeeIds = new List<int> { 1, 2, 3 },
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get meeting {MeetingId} for project {ProjectId} in company {CompanyId}", meetingId, projectId, companyId);
-            throw;
-        }
+        _logger?.LogDebug("Attempting to get meeting {MeetingId} for project {ProjectId} in company {CompanyId}", meetingId, projectId, companyId);
+        
+        // Note: V1.0 API does not provide meeting endpoints
+        return Task.FromException<ProjectModels.Meeting>(new NotImplementedException(
+            "Meeting operations are not supported in the V1.0 API. " +
+            "Please upgrade to V2.0 API for meeting functionality."));
     }
 
     /// <summary>
     /// Creates a new meeting.
+    /// Note: V1.0 API does not provide meeting endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
     /// <param name="request">The meeting creation request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The created meeting.</returns>
-    public async Task<ProjectModels.Meeting> CreateMeetingAsync(int companyId, int projectId, ProjectModels.CreateMeetingRequest request, CancellationToken cancellationToken = default)
+    /// <exception cref="ArgumentNullException">Thrown when request is null.</exception>
+    /// <exception cref="NotImplementedException">Thrown because meeting operations are not supported in V1.0 API.</exception>
+    public Task<ProjectModels.Meeting> CreateMeetingAsync(int companyId, int projectId, ProjectModels.CreateMeetingRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
-        {
-            _logger?.LogDebug("Creating meeting for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            return new Meeting 
-            { 
-                Id = 1,
-                ProjectId = projectId,
-                Title = request.Title,
-                ScheduledDate = request.ScheduledDate,
-                Location = request.Location,
-                Status = MeetingStatus.Scheduled,
-                AttendeeIds = request.AttendeeIds,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to create meeting for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        _logger?.LogDebug("Attempting to create meeting for project {ProjectId} in company {CompanyId}", projectId, companyId);
+        
+        // Note: V1.0 API does not provide meeting endpoints
+        return Task.FromException<ProjectModels.Meeting>(new NotImplementedException(
+            "Meeting creation is not supported in the V1.0 API. " +
+            "Please upgrade to V2.0 API for meeting functionality."));
     }
 
     /// <summary>
     /// Updates an existing meeting.
+    /// Note: V1.0 API does not provide meeting endpoints.
+    /// This method is included for interface completeness but requires V2.0 API for functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -748,32 +844,18 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <param name="request">The meeting update request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The updated meeting.</returns>
-    public async Task<ProjectModels.Meeting> UpdateMeetingAsync(int companyId, int projectId, int meetingId, ProjectModels.CreateMeetingRequest request, CancellationToken cancellationToken = default)
+    /// <exception cref="ArgumentNullException">Thrown when request is null.</exception>
+    /// <exception cref="NotImplementedException">Thrown because meeting operations are not supported in V1.0 API.</exception>
+    public Task<ProjectModels.Meeting> UpdateMeetingAsync(int companyId, int projectId, int meetingId, ProjectModels.CreateMeetingRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
-        {
-            _logger?.LogDebug("Updating meeting {MeetingId} for project {ProjectId} in company {CompanyId}", meetingId, projectId, companyId);
-            
-            // Placeholder implementation
-            return new Meeting 
-            { 
-                Id = meetingId,
-                ProjectId = projectId,
-                Title = request.Title,
-                ScheduledDate = request.ScheduledDate,
-                Location = request.Location,
-                Status = MeetingStatus.Scheduled,
-                AttendeeIds = request.AttendeeIds,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to update meeting {MeetingId} for project {ProjectId} in company {CompanyId}", meetingId, projectId, companyId);
-            throw;
-        }
+        _logger?.LogDebug("Attempting to update meeting {MeetingId} for project {ProjectId} in company {CompanyId}", meetingId, projectId, companyId);
+        
+        // Note: V1.0 API does not provide meeting endpoints
+        return Task.FromException<ProjectModels.Meeting>(new NotImplementedException(
+            "Meeting updates are not supported in the V1.0 API. " +
+            "Please upgrade to V2.0 API for meeting functionality."));
     }
 
     #endregion
@@ -788,19 +870,19 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <returns>A collection of active projects.</returns>
     public async Task<IEnumerable<ProjectModels.Project>> GetActiveProjectsAsync(int companyId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting active projects for company {CompanyId}", companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<Project>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get active projects for company {CompanyId}", companyId);
-            throw new InvalidOperationException($"Failed to get active projects for company {companyId}", ex);
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting active projects for company {CompanyId}", companyId);
+                
+                // Use the existing GetProjectsAsync method and filter for active projects
+                var allProjects = await GetProjectsAsync(companyId, cancellationToken);
+                
+                return allProjects.Where(p => p.IsActive && p.Status == ProjectStatus.Active);
+            },
+            $"GetActiveProjects-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -817,25 +899,30 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             throw new ArgumentException("Project name cannot be null or empty", nameof(projectName));
         }
         
-        try
-        {
-            _logger?.LogDebug("Getting project by name {ProjectName} for company {CompanyId}", projectName, companyId);
-            
-            // Placeholder implementation
-            return new Project 
-            { 
-                Id = 1,
-                CompanyId = companyId,
-                Name = projectName,
-                Status = ProjectStatus.Active,
-                IsActive = true
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get project by name {ProjectName} for company {CompanyId}", projectName, companyId);
-            throw new InvalidOperationException($"Failed to get project by name {projectName} for company {companyId}", ex);
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting project by name {ProjectName} for company {CompanyId}", projectName, companyId);
+                
+                // Use the existing GetProjectsAsync method and find by name
+                var allProjects = await GetProjectsAsync(companyId, cancellationToken);
+                
+                var matchingProject = allProjects.FirstOrDefault(p => 
+                    string.Equals(p.Name, projectName, StringComparison.OrdinalIgnoreCase));
+                
+                if (matchingProject == null)
+                {
+                    throw new CoreModels.ProcoreCoreException(
+                        $"Project with name '{projectName}' not found in company {companyId}",
+                        "PROJECT_NOT_FOUND",
+                        null);
+                }
+                
+                return matchingProject;
+            },
+            $"GetProjectByName-{projectName}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -847,19 +934,28 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <returns>The total budget amount.</returns>
     public async Task<decimal> GetProjectBudgetTotalAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting budget total for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return 100000m;
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get budget total for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Failed to get budget total for project {projectId} in company {companyId}", ex);
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting budget total for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                
+                // Get the project first to see if it has a budget amount
+                var project = await GetProjectAsync(companyId, projectId, cancellationToken);
+                
+                if (project.Budget.HasValue)
+                {
+                    return project.Budget.Value;
+                }
+
+                // If no budget in project, try to get from budget changes
+                var budgetChanges = await GetBudgetChangesAsync(companyId, projectId, cancellationToken);
+                
+                return budgetChanges.Where(bc => bc.Status == BudgetChangeStatus.Approved)
+                                  .Sum(bc => bc.Amount);
+            },
+            $"GetProjectBudgetTotal-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -872,19 +968,45 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <returns>A collection of budget variances.</returns>
     public async Task<IEnumerable<ProjectModels.BudgetVariance>> GetBudgetVariancesAsync(int companyId, int projectId, decimal thresholdPercentage, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting budget variances for project {ProjectId} in company {CompanyId} with threshold {Threshold}%", projectId, companyId, thresholdPercentage);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<BudgetVariance>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get budget variances for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Failed to get budget variances for project {projectId} in company {companyId}", ex);
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting budget variances for project {ProjectId} in company {CompanyId} with threshold {Threshold}%", projectId, companyId, thresholdPercentage);
+                
+                // Get budget line items (limited info available from V1.0)
+                var budgetLineItems = await GetBudgetLineItemsAsync(companyId, projectId, cancellationToken);
+                
+                var variances = new List<BudgetVariance>();
+                
+                foreach (var lineItem in budgetLineItems)
+                {
+                    if (lineItem.BudgetAmount > 0)
+                    {
+                        var varianceAmount = lineItem.VarianceAmount;
+                        var variancePercentage = Math.Abs((varianceAmount / lineItem.BudgetAmount) * 100);
+                        
+                        if (variancePercentage >= thresholdPercentage)
+                        {
+                            variances.Add(new BudgetVariance
+                            {
+                                BudgetLineItemId = lineItem.Id,
+                                WbsCode = lineItem.WbsCode,
+                                Description = lineItem.Description,
+                                BudgetAmount = lineItem.BudgetAmount,
+                                ActualAmount = lineItem.ActualAmount,
+                                VarianceAmount = varianceAmount,
+                                VariancePercentage = variancePercentage,
+                                ProjectId = projectId
+                            });
+                        }
+                    }
+                }
+                
+                return variances.AsEnumerable();
+            },
+            $"GetBudgetVariances-Project-{projectId}-Company-{companyId}-Threshold-{thresholdPercentage}",
+            null,
+            cancellationToken);
     }
 
     #endregion
@@ -902,27 +1024,36 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     {
         ArgumentNullException.ThrowIfNull(options);
         
-        try
-        {
-            _logger?.LogDebug("Getting projects with pagination for company {CompanyId} (page {Page}, per page {PerPage})", companyId, options.Page, options.PerPage);
-            
-            // Placeholder implementation
-            return new CoreModels.PagedResult<ProjectModels.Project>
+        return await ExecuteWithResilienceAsync(
+            async () =>
             {
-                Items = Enumerable.Empty<ProjectModels.Project>(),
-                TotalCount = 0,
-                Page = options.Page,
-                PerPage = options.PerPage,
-                TotalPages = 0,
-                HasNextPage = false,
-                HasPreviousPage = false
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get projects with pagination for company {CompanyId}", companyId);
-            throw new InvalidOperationException($"Failed to get projects with pagination for company {companyId}", ex);
-        }
+                _logger?.LogDebug("Getting projects with pagination for company {CompanyId} (page {Page}, per page {PerPage})", companyId, options.Page, options.PerPage);
+                
+                // Get all projects first (since V1.0 API doesn't support server-side pagination)
+                var allProjects = await GetProjectsAsync(companyId, cancellationToken);
+                var projectsList = allProjects.ToList();
+                
+                var totalCount = projectsList.Count;
+                var totalPages = (int)Math.Ceiling((double)totalCount / options.PerPage);
+                
+                // Apply client-side pagination
+                var skip = (options.Page - 1) * options.PerPage;
+                var pagedItems = projectsList.Skip(skip).Take(options.PerPage);
+                
+                return new CoreModels.PagedResult<ProjectModels.Project>
+                {
+                    Items = pagedItems,
+                    TotalCount = totalCount,
+                    Page = options.Page,
+                    PerPage = options.PerPage,
+                    TotalPages = totalPages,
+                    HasNextPage = options.Page < totalPages,
+                    HasPreviousPage = options.Page > 1
+                };
+            },
+            $"GetProjectsPaged-Company-{companyId}-Page-{options.Page}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -937,27 +1068,36 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     {
         ArgumentNullException.ThrowIfNull(options);
         
-        try
-        {
-            _logger?.LogDebug("Getting budget line items with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
-            
-            // Placeholder implementation
-            return new CoreModels.PagedResult<ProjectModels.BudgetLineItem>
+        return await ExecuteWithResilienceAsync(
+            async () =>
             {
-                Items = Enumerable.Empty<ProjectModels.BudgetLineItem>(),
-                TotalCount = 0,
-                Page = options.Page,
-                PerPage = options.PerPage,
-                TotalPages = 0,
-                HasNextPage = false,
-                HasPreviousPage = false
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get budget line items with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Failed to get budget line items with pagination for project {projectId} in company {companyId}", ex);
-        }
+                _logger?.LogDebug("Getting budget line items with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
+                
+                // Get all budget line items first
+                var allBudgetLineItems = await GetBudgetLineItemsAsync(companyId, projectId, cancellationToken);
+                var budgetLineItemsList = allBudgetLineItems.ToList();
+                
+                var totalCount = budgetLineItemsList.Count;
+                var totalPages = (int)Math.Ceiling((double)totalCount / options.PerPage);
+                
+                // Apply client-side pagination
+                var skip = (options.Page - 1) * options.PerPage;
+                var pagedItems = budgetLineItemsList.Skip(skip).Take(options.PerPage);
+                
+                return new CoreModels.PagedResult<ProjectModels.BudgetLineItem>
+                {
+                    Items = pagedItems,
+                    TotalCount = totalCount,
+                    Page = options.Page,
+                    PerPage = options.PerPage,
+                    TotalPages = totalPages,
+                    HasNextPage = options.Page < totalPages,
+                    HasPreviousPage = options.Page > 1
+                };
+            },
+            $"GetBudgetLineItemsPaged-Project-{projectId}-Company-{companyId}-Page-{options.Page}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -972,27 +1112,36 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     {
         ArgumentNullException.ThrowIfNull(options);
         
-        try
-        {
-            _logger?.LogDebug("Getting commitment contracts with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
-            
-            // Placeholder implementation
-            return new CoreModels.PagedResult<ProjectModels.CommitmentContract>
+        return await ExecuteWithResilienceAsync(
+            async () =>
             {
-                Items = Enumerable.Empty<ProjectModels.CommitmentContract>(),
-                TotalCount = 0,
-                Page = options.Page,
-                PerPage = options.PerPage,
-                TotalPages = 0,
-                HasNextPage = false,
-                HasPreviousPage = false
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get commitment contracts with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Failed to get commitment contracts with pagination for project {projectId} in company {companyId}", ex);
-        }
+                _logger?.LogDebug("Getting commitment contracts with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
+                
+                // Get all commitment contracts first
+                var allCommitmentContracts = await GetCommitmentContractsAsync(companyId, projectId, cancellationToken);
+                var commitmentContractsList = allCommitmentContracts.ToList();
+                
+                var totalCount = commitmentContractsList.Count;
+                var totalPages = (int)Math.Ceiling((double)totalCount / options.PerPage);
+                
+                // Apply client-side pagination
+                var skip = (options.Page - 1) * options.PerPage;
+                var pagedItems = commitmentContractsList.Skip(skip).Take(options.PerPage);
+                
+                return new CoreModels.PagedResult<ProjectModels.CommitmentContract>
+                {
+                    Items = pagedItems,
+                    TotalCount = totalCount,
+                    Page = options.Page,
+                    PerPage = options.PerPage,
+                    TotalPages = totalPages,
+                    HasNextPage = options.Page < totalPages,
+                    HasPreviousPage = options.Page > 1
+                };
+            },
+            $"GetCommitmentContractsPaged-Project-{projectId}-Company-{companyId}-Page-{options.Page}",
+            null,
+            cancellationToken);
     }
 
     #endregion
