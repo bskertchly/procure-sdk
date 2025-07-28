@@ -16,7 +16,12 @@ public static class QualitySafetyTypeMappingExtensions
     /// <returns>The service collection for chaining</returns>
     public static IServiceCollection AddQualitySafetyTypeMappers(this IServiceCollection services)
     {
-        services.AddSingleton<ITypeMapper<Observation, object>, ObservationTypeMapper>();
+        // Register concrete type mappers directly - they use different generated types
+        services.AddSingleton<ObservationGetResponseMapper>();
+        services.AddSingleton<ObservationPostResponseMapper>();
+        services.AddSingleton<ObservationPatchResponseMapper>();
+        services.AddSingleton<SafetyIncidentPostResponseMapper>();
+        services.AddSingleton<NearMissPostResponseMapper>();
         services.AddSingleton<ObservationTypeMapper>();
         
         return services;
