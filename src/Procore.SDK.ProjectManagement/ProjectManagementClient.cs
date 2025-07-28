@@ -24,6 +24,7 @@ namespace Procore.SDK.ProjectManagement;
 public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementClient
 {
     private readonly Procore.SDK.ProjectManagement.ProjectManagementClient _generatedClient;
+    private readonly IRequestAdapter _requestAdapter;
     private readonly ILogger<ProcoreProjectManagementClient>? _logger;
     private readonly ErrorMapper? _errorMapper;
     private readonly StructuredLogger? _structuredLogger;
@@ -51,6 +52,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
         ITypeMapper<Project, GeneratedProject>? projectMapper = null)
     {
         _generatedClient = new Procore.SDK.ProjectManagement.ProjectManagementClient(requestAdapter);
+        _requestAdapter = requestAdapter;
         _logger = logger;
         _errorMapper = errorMapper;
         _structuredLogger = structuredLogger;
@@ -124,6 +126,32 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
         }, operationName, correlationId, cancellationToken);
     }
 
+    /// <summary>
+    /// Maps a Core project model to a ProjectManagement project model.
+    /// </summary>
+    /// <param name="coreProject">The Core project model.</param>
+    /// <param name="companyId">The company ID to set in the mapped project.</param>
+    /// <returns>The ProjectManagement project model.</returns>
+    private ProjectModels.Project MapCoreProjectToProjectManagement(Procore.SDK.Core.Rest.V10.Companies.Item.Projects.Projects coreProject, int companyId)
+    {
+        return new ProjectModels.Project
+        {
+            Id = coreProject.Id ?? 0,
+            Name = coreProject.Name ?? string.Empty,
+            Description = string.Empty, // Core model doesn't include description
+            Status = ProjectModels.ProjectStatus.Active, // Default status as Core model doesn't map directly
+            StartDate = null, // Core model doesn't include dates in this response
+            EndDate = null,
+            CompanyId = companyId,
+            Budget = null, // Core model doesn't include budget in list response
+            ProjectType = string.Empty, // Core model doesn't include type in list response
+            Phase = ProjectModels.ProjectPhase.Construction, // Default phase
+            IsActive = true, // Assume active since it's returned in the list
+            CreatedAt = DateTime.UtcNow, // Core model doesn't include timestamps in list response
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+
     #endregion
 
     #region Project Operations
@@ -141,9 +169,20 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
             {
                 _logger?.LogDebug("Getting projects for company {CompanyId}", companyId);
                 
-                // TODO: Replace with actual implementation using generated client
-                // This is currently a placeholder implementation
-                return Enumerable.Empty<ProjectModels.Project>();
+                // Use Core client to access the company projects endpoint since
+                // ProjectManagement client doesn't have a projects listing endpoint
+                var coreClient = new Procore.SDK.Core.CoreClient(_requestAdapter);
+                var coreProjects = await coreClient.Rest.V10.Companies[companyId].Projects
+                    .GetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                
+                if (coreProjects == null || !coreProjects.Any())
+                {
+                    _logger?.LogWarning("No projects returned for company {CompanyId}", companyId);
+                    return Enumerable.Empty<ProjectModels.Project>();
+                }
+                
+                // Map from Core generated models to ProjectManagement domain models
+                return coreProjects.Select(p => MapCoreProjectToProjectManagement(p, companyId));
             },
             $"GetProjects-Company-{companyId}",
             null,
