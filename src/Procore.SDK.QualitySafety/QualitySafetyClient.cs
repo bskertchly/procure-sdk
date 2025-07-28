@@ -716,16 +716,16 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
                         {
                             Id = injury.Id ?? 0,
                             ProjectId = projectId,
-                            Title = injury.Title ?? "Injury Incident",
+                            Title = injury.IncidentTitle ?? "Injury Incident",
                             Description = injury.Description ?? "Safety incident from injury report",
                             Severity = MapIncidentSeverity(injury.Recordable),
                             Type = IncidentType.MedicalTreatment,
-                            IncidentDate = injury.Incident_occurred_at ?? DateTime.UtcNow,
-                            Location = injury.Location ?? "Unknown",
-                            ReportedBy = injury.Created_by?.Id ?? 1,
+                            IncidentDate = injury.CreatedAt?.DateTime ?? DateTime.UtcNow,
+                            Location = "Project Site",
+                            ReportedBy = injury.IncidentCreatedBy?.Id ?? 1,
                             Status = IncidentStatus.Reported,
-                            CreatedAt = injury.Created_at ?? DateTime.UtcNow,
-                            UpdatedAt = injury.Updated_at ?? DateTime.UtcNow
+                            CreatedAt = injury.CreatedAt?.DateTime ?? DateTime.UtcNow,
+                            UpdatedAt = injury.UpdatedAt?.DateTime ?? DateTime.UtcNow
                         };
                         incidents.Add(incident);
                     }
@@ -746,13 +746,13 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
                             Title = "Safety Alert",
                             Description = "Incident alert notification",
                             Severity = IncidentSeverity.Minor,
-                            Type = IncidentType.Other,
-                            IncidentDate = alert.Updated_at ?? DateTime.UtcNow,
+                            Type = IncidentType.PropertyDamage,
+                            IncidentDate = alert.TriggeredAt?.DateTime ?? DateTime.UtcNow,
                             Location = "Project Site",
-                            ReportedBy = alert.Triggered_by?.Id ?? 1,
+                            ReportedBy = alert.TriggeredBy?.Id ?? 1,
                             Status = IncidentStatus.Reported,
-                            CreatedAt = alert.Created_at ?? DateTime.UtcNow,
-                            UpdatedAt = alert.Updated_at ?? DateTime.UtcNow
+                            CreatedAt = alert.TriggeredAt?.DateTime ?? DateTime.UtcNow,
+                            UpdatedAt = alert.TriggeredAt?.DateTime ?? DateTime.UtcNow
                         };
                         incidents.Add(incident);
                     }
