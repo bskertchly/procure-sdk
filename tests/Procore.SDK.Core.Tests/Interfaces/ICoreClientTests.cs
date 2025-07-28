@@ -1,4 +1,4 @@
-using Procore.SDK.Core.Models;
+using Procore.SDK.Core.Tests.Models;
 
 namespace Procore.SDK.Core.Tests.Interfaces;
 
@@ -107,6 +107,6 @@ public class ICoreClientTests
         var interfaceType = typeof(ICoreClient);
         
         // Assert - Should provide access to the underlying Kiota client for advanced scenarios
-        interfaceType.Should().HaveProperty("RawClient").Which.PropertyType.Should().Be<object>();
+        interfaceType.Should().HaveProperty<object>("RawClient");
     }
 }

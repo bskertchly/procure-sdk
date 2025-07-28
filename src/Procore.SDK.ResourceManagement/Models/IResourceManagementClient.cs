@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CoreModels = Procore.SDK.Core.Models;
 
 namespace Procore.SDK.ResourceManagement.Models;
 
@@ -51,7 +52,7 @@ public interface IResourceManagementClient : IDisposable
     Task<IEnumerable<WorkforceAssignment>> GetOptimalWorkforceAssignmentsAsync(int companyId, int projectId, CancellationToken cancellationToken = default);
 
     // Pagination Support
-    Task<PagedResult<Resource>> GetResourcesPagedAsync(int companyId, PaginationOptions options, CancellationToken cancellationToken = default);
-    Task<PagedResult<ResourceAllocation>> GetResourceAllocationsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
-    Task<PagedResult<WorkforceAssignment>> GetWorkforceAssignmentsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<Resource>> GetResourcesPagedAsync(int companyId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<ResourceAllocation>> GetResourceAllocationsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<WorkforceAssignment>> GetWorkforceAssignmentsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
 }

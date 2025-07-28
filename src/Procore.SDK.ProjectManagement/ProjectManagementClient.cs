@@ -8,8 +8,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Kiota.Abstractions;
 using Procore.SDK.Core.ErrorHandling;
 using Procore.SDK.Core.Logging;
+using Procore.SDK.Core.TypeMapping;
 using CoreModels = Procore.SDK.Core.Models;
 using ProjectModels = Procore.SDK.ProjectManagement.Models;
+using Procore.SDK.ProjectManagement.Models;
+using Procore.SDK.ProjectManagement.TypeMapping;
+using GeneratedProject = Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.GetResponse;
 
 namespace Procore.SDK.ProjectManagement;
 
@@ -23,6 +27,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     private readonly ILogger<ProcoreProjectManagementClient>? _logger;
     private readonly ErrorMapper? _errorMapper;
     private readonly StructuredLogger? _structuredLogger;
+    private readonly ITypeMapper<Project, GeneratedProject>? _projectMapper;
     private bool _disposed;
 
     /// <summary>
@@ -37,16 +42,19 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <param name="logger">Optional logger for diagnostic information.</param>
     /// <param name="errorMapper">Optional error mapper for exception handling.</param>
     /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
+    /// <param name="projectMapper">Optional type mapper for Project conversions.</param>
     public ProcoreProjectManagementClient(
         IRequestAdapter requestAdapter, 
         ILogger<ProcoreProjectManagementClient>? logger = null,
         ErrorMapper? errorMapper = null,
-        StructuredLogger? structuredLogger = null)
+        StructuredLogger? structuredLogger = null,
+        ITypeMapper<Project, GeneratedProject>? projectMapper = null)
     {
         _generatedClient = new Procore.SDK.ProjectManagement.ProjectManagementClient(requestAdapter);
         _logger = logger;
         _errorMapper = errorMapper;
         _structuredLogger = structuredLogger;
+        _projectMapper = projectMapper ?? new ProjectTypeMapper();
     }
 
     #region Private Helper Methods
@@ -66,16 +74,14 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
         
         try
         {
-            _logger?.LogDebug("Getting projects for company {CompanyId}", companyId);
+            _logger?.LogDebug("Executing operation {Operation} with correlation ID {CorrelationId}", operationName, correlationId);
             
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<Project>();
+            return await operation().ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
             var mappedException = _errorMapper?.MapHttpException(ex, correlationId) ?? 
-                new ProcoreCoreException(ex.Message, "HTTP_ERROR", null, correlationId);
+                new CoreModels.ProcoreCoreException(ex.Message, "HTTP_ERROR", null, correlationId);
             
             _structuredLogger?.LogError(mappedException, operationName, correlationId, 
                 "HTTP error in operation {Operation}", operationName);
@@ -90,7 +96,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
         }
         catch (Exception ex)
         {
-            var wrappedException = new ProcoreCoreException(
+            var wrappedException = new CoreModels.ProcoreCoreException(
                 $"Unexpected error in {operationName}: {ex.Message}", 
                 "UNEXPECTED_ERROR", 
                 null, 
@@ -154,27 +160,29 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// <returns>The project.</returns>
     public async Task<ProjectModels.Project> GetProjectAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting project {ProjectId} for company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            return new Project 
-            { 
-                Id = projectId, 
-                CompanyId = companyId,
-                Name = "Placeholder Project",
-                Status = ProjectStatus.Active,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get project {ProjectId} for company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting project {ProjectId} for company {CompanyId}", projectId, companyId);
+                
+                // Call the generated client
+                var generatedProject = await _generatedClient.Rest.V10.Projects[projectId]
+                    .GetAsync(cancellationToken: cancellationToken);
+                
+                if (generatedProject == null)
+                {
+                    throw new CoreModels.ProcoreCoreException(
+                        $"Project {projectId} not found in company {companyId}",
+                        "PROJECT_NOT_FOUND",
+                        null);
+                }
+
+                // Map to wrapper domain model using type mapper
+                return _projectMapper!.MapToWrapper(generatedProject);
+            },
+            $"GetProject-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>

@@ -1,5 +1,5 @@
 using System;
-using Procore.SDK.Core.Models;
+using Procore.SDK.Core.Tests.Models;
 using Procore.SDK.Core.ErrorHandling;
 
 namespace Procore.SDK.Core.Tests;

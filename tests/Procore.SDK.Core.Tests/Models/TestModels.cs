@@ -1,4 +1,4 @@
-namespace Procore.SDK.Core.Models;
+namespace Procore.SDK.Core.Tests.Models;
 
 /// <summary>
 /// Test model definitions for TDD development of Core Client.
@@ -302,6 +302,13 @@ public class ProcoreCoreException : Exception
         ErrorCode = errorCode;
         Details = details;
     }
+    
+    public ProcoreCoreException(string message, Exception innerException, string? errorCode, Dictionary<string, object>? details = null) 
+        : base(message, innerException)
+    {
+        ErrorCode = errorCode;
+        Details = details;
+    }
 }
 
 /// <summary>
@@ -311,6 +318,9 @@ public class ResourceNotFoundException : ProcoreCoreException
 {
     public ResourceNotFoundException(string resourceType, int id) 
         : base($"{resourceType} with ID {id} was not found.", "RESOURCE_NOT_FOUND") { }
+        
+    public ResourceNotFoundException(string resourceType, int id, Exception innerException) 
+        : base($"{resourceType} with ID {id} was not found.", innerException, "RESOURCE_NOT_FOUND") { }
 }
 
 /// <summary>
@@ -320,6 +330,9 @@ public class InvalidRequestException : ProcoreCoreException
 {
     public InvalidRequestException(string message, Dictionary<string, object>? validationErrors = null) 
         : base(message, "INVALID_REQUEST", validationErrors) { }
+        
+    public InvalidRequestException(string message, Exception innerException, Dictionary<string, object>? validationErrors = null) 
+        : base(message, innerException, "INVALID_REQUEST", validationErrors) { }
 }
 
 /// <summary>
@@ -329,6 +342,9 @@ public class ForbiddenException : ProcoreCoreException
 {
     public ForbiddenException(string message) 
         : base(message, "FORBIDDEN") { }
+        
+    public ForbiddenException(string message, Exception innerException) 
+        : base(message, innerException, "FORBIDDEN") { }
 }
 
 /// <summary>
@@ -338,6 +354,9 @@ public class UnauthorizedException : ProcoreCoreException
 {
     public UnauthorizedException(string message) 
         : base(message, "UNAUTHORIZED") { }
+        
+    public UnauthorizedException(string message, Exception innerException) 
+        : base(message, innerException, "UNAUTHORIZED") { }
 }
 
 /// <summary>
@@ -349,6 +368,12 @@ public class RateLimitExceededException : ProcoreCoreException
 
     public RateLimitExceededException(TimeSpan retryAfter) 
         : base($"Rate limit exceeded. Retry after {retryAfter.TotalSeconds} seconds.", "RATE_LIMIT_EXCEEDED")
+    {
+        RetryAfter = retryAfter;
+    }
+    
+    public RateLimitExceededException(TimeSpan retryAfter, Exception innerException) 
+        : base($"Rate limit exceeded. Retry after {retryAfter.TotalSeconds} seconds.", innerException, "RATE_LIMIT_EXCEEDED")
     {
         RetryAfter = retryAfter;
     }

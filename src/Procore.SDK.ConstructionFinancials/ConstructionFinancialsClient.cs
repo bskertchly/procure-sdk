@@ -6,7 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Kiota.Abstractions;
+using Procore.SDK.Core.ErrorHandling;
+using Procore.SDK.Core.Logging;
+using Procore.SDK.Core.TypeMapping;
 using Procore.SDK.ConstructionFinancials.Models;
+using Procore.SDK.ConstructionFinancials.TypeMapping;
+using CoreModels = Procore.SDK.Core.Models;
+using GeneratedDocumentResponse = Procore.SDK.ConstructionFinancials.Rest.V20.Companies.Item.Projects.Item.Compliance.Invoices.Item.Documents.DocumentsGetResponse;
 
 namespace Procore.SDK.ConstructionFinancials;
 
@@ -18,6 +24,9 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
 {
     private readonly Procore.SDK.ConstructionFinancials.ConstructionFinancialsClient _generatedClient;
     private readonly ILogger<ProcoreConstructionFinancialsClient>? _logger;
+    private readonly ErrorMapper? _errorMapper;
+    private readonly StructuredLogger? _structuredLogger;
+    private readonly ITypeMapper<Invoice, GeneratedDocumentResponse>? _invoiceMapper;
     private bool _disposed;
 
     /// <summary>
@@ -30,11 +39,92 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// </summary>
     /// <param name="requestAdapter">The request adapter to use for HTTP communication.</param>
     /// <param name="logger">Optional logger for diagnostic information.</param>
-    public ProcoreConstructionFinancialsClient(IRequestAdapter requestAdapter, ILogger<ProcoreConstructionFinancialsClient>? logger = null)
+    /// <param name="errorMapper">Optional error mapper for exception handling.</param>
+    /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
+    /// <param name="invoiceMapper">Optional type mapper for invoice conversion.</param>
+    public ProcoreConstructionFinancialsClient(
+        IRequestAdapter requestAdapter, 
+        ILogger<ProcoreConstructionFinancialsClient>? logger = null,
+        ErrorMapper? errorMapper = null,
+        StructuredLogger? structuredLogger = null,
+        ITypeMapper<Invoice, GeneratedDocumentResponse>? invoiceMapper = null)
     {
         _generatedClient = new Procore.SDK.ConstructionFinancials.ConstructionFinancialsClient(requestAdapter);
         _logger = logger;
+        _errorMapper = errorMapper;
+        _structuredLogger = structuredLogger;
+        _invoiceMapper = invoiceMapper;
     }
+
+    #region Private Helper Methods
+
+    /// <summary>
+    /// Executes an operation with proper error handling and logging.
+    /// </summary>
+    private async Task<T> ExecuteWithResilienceAsync<T>(
+        Func<Task<T>> operation,
+        string operationName,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        correlationId ??= Guid.NewGuid().ToString();
+        
+        using var operationScope = _structuredLogger?.BeginOperation(operationName, correlationId);
+        
+        try
+        {
+            _logger?.LogDebug("Executing operation {Operation} with correlation ID {CorrelationId}", operationName, correlationId);
+            
+            return await operation().ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            var mappedException = _errorMapper?.MapHttpException(ex, correlationId) ?? 
+                new CoreModels.ProcoreCoreException(ex.Message, "HTTP_ERROR", null, correlationId);
+            
+            _structuredLogger?.LogError(mappedException, operationName, correlationId, 
+                "HTTP error in operation {Operation}", operationName);
+            
+            throw mappedException;
+        }
+        catch (TaskCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        {
+            _structuredLogger?.LogWarning(operationName, correlationId,
+                "Operation {Operation} was cancelled", operationName);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            var wrappedException = new CoreModels.ProcoreCoreException(
+                $"Unexpected error in {operationName}: {ex.Message}", 
+                "UNEXPECTED_ERROR", 
+                null, 
+                correlationId);
+            
+            _structuredLogger?.LogError(wrappedException, operationName, correlationId,
+                "Unexpected error in operation {Operation}", operationName);
+            
+            throw wrappedException;
+        }
+    }
+
+    /// <summary>
+    /// Executes an operation with proper error handling and logging (void return).
+    /// </summary>
+    private async Task ExecuteWithResilienceAsync(
+        Func<Task> operation,
+        string operationName,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        await ExecuteWithResilienceAsync(async () =>
+        {
+            await operation();
+            return true; // Return a dummy value
+        }, operationName, correlationId, cancellationToken);
+    }
+
+    #endregion
 
     #region Invoice Operations
 
@@ -81,7 +171,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>The invoice.</returns>
     public async Task<Invoice> GetInvoiceAsync(int companyId, int projectId, int invoiceId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting invoice {InvoiceId} for project {ProjectId} in company {CompanyId}", invoiceId, projectId, companyId);
             
@@ -89,29 +179,35 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
             var documentsResponse = await _generatedClient.Rest.V20.Companies[companyId.ToString()]
                 .Projects[projectId.ToString()].Compliance.Invoices[invoiceId.ToString()].Documents
                 .GetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-                
-            // Map the compliance document response to our domain model
-            // Note: This is a simplified mapping - real implementation would need more detailed field mapping
-            return new Invoice 
-            { 
-                Id = invoiceId,
-                ProjectId = projectId,
-                InvoiceNumber = $"INV-{invoiceId}",
-                Amount = 0m, // Amount not available in compliance documents endpoint
-                Status = InvoiceStatus.Submitted, // Status mapping would need actual field from API
-                InvoiceDate = DateTime.UtcNow, // Would need actual date from API
-                DueDate = null,
-                VendorId = 0, // Vendor ID not available in this endpoint
-                Description = "Invoice with compliance documents",
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get invoice {InvoiceId} for project {ProjectId} in company {CompanyId}", invoiceId, projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+
+            // Use type mapper if available, otherwise fall back to manual mapping
+            if (_invoiceMapper != null)
+            {
+                var mappedInvoice = _invoiceMapper.MapToWrapper(documentsResponse);
+                // Override with known context data
+                mappedInvoice.Id = invoiceId;
+                mappedInvoice.ProjectId = projectId;
+                return mappedInvoice;
+            }
+            else
+            {
+                // Fallback manual mapping for backward compatibility
+                return new Invoice 
+                { 
+                    Id = invoiceId,
+                    ProjectId = projectId,
+                    InvoiceNumber = $"INV-{invoiceId}",
+                    Amount = 0m, // Amount not available in compliance documents endpoint
+                    Status = InvoiceStatus.Submitted, // Status mapping would need actual field from API
+                    InvoiceDate = DateTime.UtcNow, // Would need actual date from API
+                    DueDate = null,
+                    VendorId = 0, // Vendor ID not available in this endpoint
+                    Description = "Invoice with compliance documents",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+            }
+        }, nameof(GetInvoiceAsync), cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -420,7 +516,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of invoices.</returns>
-    public async Task<PagedResult<Invoice>> GetInvoicesPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<Invoice>> GetInvoicesPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -429,7 +525,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
             _logger?.LogDebug("Getting invoices with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<Invoice>
+            return new CoreModels.PagedResult<Invoice>
             {
                 Items = Enumerable.Empty<Invoice>(),
                 TotalCount = 0,
@@ -455,7 +551,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of financial transactions.</returns>
-    public async Task<PagedResult<FinancialTransaction>> GetTransactionsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<FinancialTransaction>> GetTransactionsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -464,7 +560,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
             _logger?.LogDebug("Getting transactions with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<FinancialTransaction>
+            return new CoreModels.PagedResult<FinancialTransaction>
             {
                 Items = Enumerable.Empty<FinancialTransaction>(),
                 TotalCount = 0,

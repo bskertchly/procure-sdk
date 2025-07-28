@@ -6,7 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Kiota.Abstractions;
+using Procore.SDK.Core.ErrorHandling;
+using Procore.SDK.Core.Logging;
 using Procore.SDK.ResourceManagement.Models;
+using CoreModels = Procore.SDK.Core.Models;
 
 namespace Procore.SDK.ResourceManagement;
 
@@ -18,6 +21,8 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
 {
     private readonly Procore.SDK.ResourceManagement.ResourceManagementClient _generatedClient;
     private readonly ILogger<ProcoreResourceManagementClient>? _logger;
+    private readonly ErrorMapper? _errorMapper;
+    private readonly StructuredLogger? _structuredLogger;
     private bool _disposed;
 
     /// <summary>
@@ -30,11 +35,89 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// </summary>
     /// <param name="requestAdapter">The request adapter to use for HTTP communication.</param>
     /// <param name="logger">Optional logger for diagnostic information.</param>
-    public ProcoreResourceManagementClient(IRequestAdapter requestAdapter, ILogger<ProcoreResourceManagementClient>? logger = null)
+    /// <param name="errorMapper">Optional error mapper for exception handling.</param>
+    /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
+    public ProcoreResourceManagementClient(
+        IRequestAdapter requestAdapter, 
+        ILogger<ProcoreResourceManagementClient>? logger = null,
+        ErrorMapper? errorMapper = null,
+        StructuredLogger? structuredLogger = null)
     {
         _generatedClient = new Procore.SDK.ResourceManagement.ResourceManagementClient(requestAdapter);
         _logger = logger;
+        _errorMapper = errorMapper;
+        _structuredLogger = structuredLogger;
     }
+
+    #region Private Helper Methods
+
+    /// <summary>
+    /// Executes an operation with proper error handling and logging.
+    /// </summary>
+    private async Task<T> ExecuteWithResilienceAsync<T>(
+        Func<Task<T>> operation,
+        string operationName,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        correlationId ??= Guid.NewGuid().ToString();
+        
+        using var operationScope = _structuredLogger?.BeginOperation(operationName, correlationId);
+        
+        try
+        {
+            _logger?.LogDebug("Executing operation {Operation} with correlation ID {CorrelationId}", operationName, correlationId);
+            
+            return await operation().ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            var mappedException = _errorMapper?.MapHttpException(ex, correlationId) ?? 
+                new CoreModels.ProcoreCoreException(ex.Message, "HTTP_ERROR", null, correlationId);
+            
+            _structuredLogger?.LogError(mappedException, operationName, correlationId, 
+                "HTTP error in operation {Operation}", operationName);
+            
+            throw mappedException;
+        }
+        catch (TaskCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        {
+            _structuredLogger?.LogWarning(operationName, correlationId,
+                "Operation {Operation} was cancelled", operationName);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            var wrappedException = new CoreModels.ProcoreCoreException(
+                $"Unexpected error in {operationName}: {ex.Message}", 
+                "UNEXPECTED_ERROR", 
+                null, 
+                correlationId);
+            
+            _structuredLogger?.LogError(wrappedException, operationName, correlationId,
+                "Unexpected error in operation {Operation}", operationName);
+            
+            throw wrappedException;
+        }
+    }
+
+    /// <summary>
+    /// Executes an operation with proper error handling and logging (void return).
+    /// </summary>
+    private async Task ExecuteWithResilienceAsync(
+        Func<Task> operation,
+        string operationName,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        await ExecuteWithResilienceAsync(async () =>
+        {
+            await operation();
+            return true; // Return a dummy value
+        }, operationName, correlationId, cancellationToken);
+    }
+
+    #endregion
 
     #region Resource Operations
 
@@ -46,19 +129,18 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <returns>A collection of resources.</returns>
     public async Task<IEnumerable<Resource>> GetResourcesAsync(int companyId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting resources for company {CompanyId}", companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<Resource>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get resources for company {CompanyId}", companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting resources for company {CompanyId}", companyId);
+                
+                // Placeholder implementation
+                await Task.CompletedTask.ConfigureAwait(false);
+                return Enumerable.Empty<Resource>();
+            },
+            $"GetResources-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -108,31 +190,30 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
-        {
-            _logger?.LogDebug("Creating resource for company {CompanyId}", companyId);
-            
-            // Placeholder implementation
-            return new Resource 
-            { 
-                Id = 1,
-                Name = request.Name,
-                Type = request.Type,
-                Status = ResourceStatus.Available,
-                Description = request.Description,
-                CostPerHour = request.CostPerHour,
-                Location = request.Location,
-                AvailableFrom = request.AvailableFrom,
-                AvailableTo = request.AvailableTo,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to create resource for company {CompanyId}", companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Creating resource for company {CompanyId}", companyId);
+                
+                // Placeholder implementation
+                return new Resource 
+                { 
+                    Id = 1,
+                    Name = request.Name,
+                    Type = request.Type,
+                    Status = ResourceStatus.Available,
+                    Description = request.Description,
+                    CostPerHour = request.CostPerHour,
+                    Location = request.Location,
+                    AvailableFrom = request.AvailableFrom,
+                    AvailableTo = request.AvailableTo,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+            },
+            $"CreateResource-{request.Name}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -270,30 +351,29 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
-        {
-            _logger?.LogDebug("Allocating resource {ResourceId} to project {ProjectId} in company {CompanyId}", request.ResourceId, projectId, companyId);
-            
-            // Placeholder implementation
-            return new ResourceAllocation 
-            { 
-                Id = 1,
-                ResourceId = request.ResourceId,
-                ProjectId = projectId,
-                StartDate = request.StartDate,
-                EndDate = request.EndDate,
-                AllocationPercentage = request.AllocationPercentage,
-                Status = AllocationStatus.Planned,
-                Notes = request.Notes,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to allocate resource {ResourceId} to project {ProjectId} in company {CompanyId}", request.ResourceId, projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Allocating resource {ResourceId} to project {ProjectId} in company {CompanyId}", request.ResourceId, projectId, companyId);
+                
+                // Placeholder implementation
+                return new ResourceAllocation 
+                { 
+                    Id = 1,
+                    ResourceId = request.ResourceId,
+                    ProjectId = projectId,
+                    StartDate = request.StartDate,
+                    EndDate = request.EndDate,
+                    AllocationPercentage = request.AllocationPercentage,
+                    Status = AllocationStatus.Planned,
+                    Notes = request.Notes,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+            },
+            $"AllocateResource-{request.ResourceId}-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -736,7 +816,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of resources.</returns>
-    public async Task<PagedResult<Resource>> GetResourcesPagedAsync(int companyId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<Resource>> GetResourcesPagedAsync(int companyId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -745,7 +825,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting resources with pagination for company {CompanyId} (page {Page}, per page {PerPage})", companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<Resource>
+            return new CoreModels.PagedResult<Resource>
             {
                 Items = Enumerable.Empty<Resource>(),
                 TotalCount = 0,
@@ -771,7 +851,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of resource allocations.</returns>
-    public async Task<PagedResult<ResourceAllocation>> GetResourceAllocationsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<ResourceAllocation>> GetResourceAllocationsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -780,7 +860,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting resource allocations with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<ResourceAllocation>
+            return new CoreModels.PagedResult<ResourceAllocation>
             {
                 Items = Enumerable.Empty<ResourceAllocation>(),
                 TotalCount = 0,
@@ -806,7 +886,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of workforce assignments.</returns>
-    public async Task<PagedResult<WorkforceAssignment>> GetWorkforceAssignmentsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<WorkforceAssignment>> GetWorkforceAssignmentsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -815,7 +895,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
             _logger?.LogDebug("Getting workforce assignments with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<WorkforceAssignment>
+            return new CoreModels.PagedResult<WorkforceAssignment>
             {
                 Items = Enumerable.Empty<WorkforceAssignment>(),
                 TotalCount = 0,

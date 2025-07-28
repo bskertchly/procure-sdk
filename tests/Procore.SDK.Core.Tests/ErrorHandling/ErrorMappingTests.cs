@@ -1,4 +1,4 @@
-using Procore.SDK.Core.Models;
+using Procore.SDK.Core.Tests.Models;
 
 namespace Procore.SDK.Core.Tests.ErrorHandling;
 
@@ -332,13 +332,13 @@ public class ErrorMapper
         return statusCode switch
         {
             HttpStatusCode.BadRequest => CreateInvalidRequestException(httpException, responseBody),
-            HttpStatusCode.Unauthorized => new UnauthorizedException(httpException.Message),
-            HttpStatusCode.Forbidden => new ForbiddenException(httpException.Message),
+            HttpStatusCode.Unauthorized => new UnauthorizedException(httpException.Message, httpException),
+            HttpStatusCode.Forbidden => new ForbiddenException(httpException.Message, httpException),
             HttpStatusCode.NotFound => CreateResourceNotFoundException(httpException),
             HttpStatusCode.UnprocessableEntity => CreateInvalidRequestException(httpException, responseBody),
             HttpStatusCode.TooManyRequests => CreateRateLimitExceededException(httpException),
-            >= HttpStatusCode.InternalServerError => new ProcoreCoreException(httpException.Message, "SERVER_ERROR"),
-            _ => new ProcoreCoreException(httpException.Message, "UNKNOWN_ERROR")
+            >= HttpStatusCode.InternalServerError => new ProcoreCoreException(httpException.Message, httpException, "SERVER_ERROR"),
+            _ => new ProcoreCoreException(httpException.Message, httpException, "UNKNOWN_ERROR")
         };
     }
 
@@ -362,7 +362,28 @@ public class ErrorMapper
     private static InvalidRequestException CreateInvalidRequestException(HttpRequestException httpException, string? responseBody)
     {
         var details = ParseResponseBody(responseBody);
-        return new InvalidRequestException(httpException.Message, details);
+        
+        // Try to extract a more descriptive message from Procore error response
+        var message = httpException.Message;
+        if (details != null)
+        {
+            if (details.ContainsKey("error") && details["error"] is string errorMessage && 
+                !string.IsNullOrWhiteSpace(errorMessage) && 
+                IsMoreDescriptiveThanHttpMessage(errorMessage, httpException.Message))
+            {
+                message = errorMessage;
+            }
+        }
+        
+        return new InvalidRequestException(message, httpException, details);
+    }
+
+    private static bool IsMoreDescriptiveThanHttpMessage(string errorMessage, string httpMessage)
+    {
+        // Use the error message from JSON only if the HTTP message is the generic "Unprocessable Entity"
+        // or other truly generic messages that don't provide meaningful context
+        var genericHttpMessages = new[] { "Unprocessable Entity", "Internal Server Error", "Service Unavailable" };
+        return genericHttpMessages.Contains(httpMessage, StringComparer.OrdinalIgnoreCase);
     }
 
     private static ResourceNotFoundException CreateResourceNotFoundException(HttpRequestException httpException)
@@ -378,10 +399,10 @@ public class ErrorMapper
 
         if (int.TryParse(resourceIdString, out var resourceId))
         {
-            return new ResourceNotFoundException(resourceType, resourceId);
+            return new ResourceNotFoundException(resourceType, resourceId, httpException);
         }
 
-        return new ResourceNotFoundException("Resource", 0);
+        return new ResourceNotFoundException("Resource", 0, httpException);
     }
 
     private static string? ExtractIdFromPath(HttpRequestException httpException)
@@ -408,7 +429,7 @@ public class ErrorMapper
             retryAfter = ParseRetryAfter(retryAfterValue);
         }
 
-        return new RateLimitExceededException(retryAfter);
+        return new RateLimitExceededException(retryAfter, httpException);
     }
 
     private static TimeSpan ParseRetryAfter(string? retryAfterValue)
@@ -439,11 +460,42 @@ public class ErrorMapper
 
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<string, object>>(responseBody);
+            using var document = JsonDocument.Parse(responseBody);
+            return ConvertJsonElementToDictionary(document.RootElement);
         }
         catch (JsonException)
         {
             return null;
         }
+    }
+
+    private static Dictionary<string, object>? ConvertJsonElementToDictionary(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+            return null;
+
+        var result = new Dictionary<string, object>();
+        
+        foreach (var property in element.EnumerateObject())
+        {
+            result[property.Name] = ConvertJsonElement(property.Value);
+        }
+        
+        return result;
+    }
+
+    private static object ConvertJsonElement(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.Number => element.TryGetInt32(out var intValue) ? intValue : element.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Array => element.EnumerateArray().Select(ConvertJsonElement).ToArray(),
+            JsonValueKind.Object => ConvertJsonElementToDictionary(element) ?? new Dictionary<string, object>(),
+            JsonValueKind.Null => string.Empty,
+            _ => element.ToString()
+        };
     }
 }

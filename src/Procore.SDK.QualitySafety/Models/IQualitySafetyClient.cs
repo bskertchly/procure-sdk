@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CoreModels = Procore.SDK.Core.Models;
 
 namespace Procore.SDK.QualitySafety.Models;
 
@@ -54,7 +55,7 @@ public interface IQualitySafetyClient : IDisposable
     Task<Dictionary<string, int>> GetObservationSummaryAsync(int companyId, int projectId, CancellationToken cancellationToken = default);
 
     // Pagination Support
-    Task<PagedResult<Observation>> GetObservationsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
-    Task<PagedResult<InspectionTemplate>> GetInspectionTemplatesPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
-    Task<PagedResult<SafetyIncident>> GetSafetyIncidentsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<Observation>> GetObservationsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<InspectionTemplate>> GetInspectionTemplatesPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<SafetyIncident>> GetSafetyIncidentsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CoreModels = Procore.SDK.Core.Models;
 
 namespace Procore.SDK.ConstructionFinancials.Models;
 
@@ -36,6 +37,6 @@ public interface IConstructionFinancialsClient : IDisposable
     Task<Dictionary<string, decimal>> GetCostSummaryAsync(int companyId, int projectId, CancellationToken cancellationToken = default);
 
     // Pagination Support
-    Task<PagedResult<Invoice>> GetInvoicesPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
-    Task<PagedResult<FinancialTransaction>> GetTransactionsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<Invoice>> GetInvoicesPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<FinancialTransaction>> GetTransactionsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
 }

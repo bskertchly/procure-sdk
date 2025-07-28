@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using CoreModels = Procore.SDK.Core.Models;
 
 namespace Procore.SDK.FieldProductivity.Models;
 
@@ -40,6 +41,6 @@ public interface IFieldProductivityClient : IDisposable
     Task<IEnumerable<ResourceUtilization>> GetUnderUtilizedResourcesAsync(int companyId, int projectId, decimal threshold, CancellationToken cancellationToken = default);
 
     // Pagination Support
-    Task<PagedResult<ProductivityReport>> GetProductivityReportsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
-    Task<PagedResult<FieldActivity>> GetFieldActivitiesPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<ProductivityReport>> GetProductivityReportsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
+    Task<CoreModels.PagedResult<FieldActivity>> GetFieldActivitiesPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
 }

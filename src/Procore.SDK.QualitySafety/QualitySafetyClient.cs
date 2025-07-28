@@ -6,7 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Kiota.Abstractions;
+using Procore.SDK.Core.ErrorHandling;
+using Procore.SDK.Core.Logging;
 using Procore.SDK.QualitySafety.Models;
+using CoreModels = Procore.SDK.Core.Models;
 
 namespace Procore.SDK.QualitySafety;
 
@@ -18,6 +21,8 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
 {
     private readonly Procore.SDK.QualitySafety.QualitySafetyClient _generatedClient;
     private readonly ILogger<ProcoreQualitySafetyClient>? _logger;
+    private readonly ErrorMapper? _errorMapper;
+    private readonly StructuredLogger? _structuredLogger;
     private bool _disposed;
 
     /// <summary>
@@ -30,11 +35,89 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// </summary>
     /// <param name="requestAdapter">The request adapter to use for HTTP communication.</param>
     /// <param name="logger">Optional logger for diagnostic information.</param>
-    public ProcoreQualitySafetyClient(IRequestAdapter requestAdapter, ILogger<ProcoreQualitySafetyClient>? logger = null)
+    /// <param name="errorMapper">Optional error mapper for exception handling.</param>
+    /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
+    public ProcoreQualitySafetyClient(
+        IRequestAdapter requestAdapter, 
+        ILogger<ProcoreQualitySafetyClient>? logger = null,
+        ErrorMapper? errorMapper = null,
+        StructuredLogger? structuredLogger = null)
     {
         _generatedClient = new Procore.SDK.QualitySafety.QualitySafetyClient(requestAdapter);
         _logger = logger;
+        _errorMapper = errorMapper;
+        _structuredLogger = structuredLogger;
     }
+
+    #region Private Helper Methods
+
+    /// <summary>
+    /// Executes an operation with proper error handling and logging.
+    /// </summary>
+    private async Task<T> ExecuteWithResilienceAsync<T>(
+        Func<Task<T>> operation,
+        string operationName,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        correlationId ??= Guid.NewGuid().ToString();
+        
+        using var operationScope = _structuredLogger?.BeginOperation(operationName, correlationId);
+        
+        try
+        {
+            _logger?.LogDebug("Executing operation {Operation} with correlation ID {CorrelationId}", operationName, correlationId);
+            
+            return await operation().ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            var mappedException = _errorMapper?.MapHttpException(ex, correlationId) ?? 
+                new CoreModels.ProcoreCoreException(ex.Message, "HTTP_ERROR", null, correlationId);
+            
+            _structuredLogger?.LogError(mappedException, operationName, correlationId, 
+                "HTTP error in operation {Operation}", operationName);
+            
+            throw mappedException;
+        }
+        catch (TaskCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        {
+            _structuredLogger?.LogWarning(operationName, correlationId,
+                "Operation {Operation} was cancelled", operationName);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            var wrappedException = new CoreModels.ProcoreCoreException(
+                $"Unexpected error in {operationName}: {ex.Message}", 
+                "UNEXPECTED_ERROR", 
+                null, 
+                correlationId);
+            
+            _structuredLogger?.LogError(wrappedException, operationName, correlationId,
+                "Unexpected error in operation {Operation}", operationName);
+            
+            throw wrappedException;
+        }
+    }
+
+    /// <summary>
+    /// Executes an operation with proper error handling and logging (void return).
+    /// </summary>
+    private async Task ExecuteWithResilienceAsync(
+        Func<Task> operation,
+        string operationName,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        await ExecuteWithResilienceAsync(async () =>
+        {
+            await operation();
+            return true; // Return a dummy value
+        }, operationName, correlationId, cancellationToken);
+    }
+
+    #endregion
 
     #region Observation Operations
 
@@ -47,19 +130,18 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>A collection of observations.</returns>
     public async Task<IEnumerable<Observation>> GetObservationsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Getting observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-            return Enumerable.Empty<Observation>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Getting observations for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                
+                // TODO: Replace with actual implementation using generated client
+                // This is currently a placeholder implementation
+                return Enumerable.Empty<Observation>();
+            },
+            $"GetObservations-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -111,33 +193,33 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
-        {
-            _logger?.LogDebug("Creating observation for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            
-            // Placeholder implementation
-            return new Observation 
-            { 
-                Id = 1,
-                ProjectId = projectId,
-                Title = request.Title,
-                Description = request.Description,
-                Priority = request.Priority,
-                Status = ObservationStatus.Open,
-                Category = request.Category,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = 1,
-                AssignedTo = request.AssignedTo,
-                DueDate = request.DueDate,
-                Location = request.Location,
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to create observation for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
-        }
+        return await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Creating observation for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                
+                // TODO: Replace with actual implementation using generated client
+                // This is currently a placeholder implementation
+                return new Observation 
+                { 
+                    Id = 1,
+                    ProjectId = projectId,
+                    Title = request.Title,
+                    Description = request.Description,
+                    Priority = request.Priority,
+                    Status = ObservationStatus.Open,
+                    Category = request.Category,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = 1,
+                    AssignedTo = request.AssignedTo,
+                    DueDate = request.DueDate,
+                    Location = request.Location,
+                    UpdatedAt = DateTime.UtcNow
+                };
+            },
+            $"CreateObservation-{request.Title}-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     /// <summary>
@@ -188,18 +270,18 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     public async Task DeleteObservationAsync(int companyId, int projectId, int observationId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger?.LogDebug("Deleting observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
-            
-            // Placeholder implementation
-            await Task.CompletedTask.ConfigureAwait(false);
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to delete observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
-        }
+        await ExecuteWithResilienceAsync(
+            async () =>
+            {
+                _logger?.LogDebug("Deleting observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
+                
+                // TODO: Replace with actual implementation using generated client
+                // This is currently a placeholder implementation
+                await Task.CompletedTask.ConfigureAwait(false);
+            },
+            $"DeleteObservation-{observationId}-Project-{projectId}-Company-{companyId}",
+            null,
+            cancellationToken);
     }
 
     #endregion
@@ -881,7 +963,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of observations.</returns>
-    public async Task<PagedResult<Observation>> GetObservationsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<Observation>> GetObservationsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -890,7 +972,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting observations with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<Observation>
+            return new CoreModels.PagedResult<Observation>
             {
                 Items = Enumerable.Empty<Observation>(),
                 TotalCount = 0,
@@ -916,7 +998,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of inspection templates.</returns>
-    public async Task<PagedResult<InspectionTemplate>> GetInspectionTemplatesPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<InspectionTemplate>> GetInspectionTemplatesPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -925,7 +1007,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting inspection templates with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<InspectionTemplate>
+            return new CoreModels.PagedResult<InspectionTemplate>
             {
                 Items = Enumerable.Empty<InspectionTemplate>(),
                 TotalCount = 0,
@@ -951,7 +1033,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <param name="options">Pagination options.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>A paged result of safety incidents.</returns>
-    public async Task<PagedResult<SafetyIncident>> GetSafetyIncidentsPagedAsync(int companyId, int projectId, PaginationOptions options, CancellationToken cancellationToken = default)
+    public async Task<CoreModels.PagedResult<SafetyIncident>> GetSafetyIncidentsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         
@@ -960,7 +1042,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogDebug("Getting safety incidents with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
             // Placeholder implementation
-            return new PagedResult<SafetyIncident>
+            return new CoreModels.PagedResult<SafetyIncident>
             {
                 Items = Enumerable.Empty<SafetyIncident>(),
                 TotalCount = 0,

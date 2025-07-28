@@ -1,4 +1,4 @@
-using Procore.SDK.Core.Models;
+using Procore.SDK.Core.Tests.Models;
 
 namespace Procore.SDK.Core.Tests;
 
@@ -96,11 +96,11 @@ public class CoreClientTestsCompilable
         var companyType = typeof(Company);
 
         // Act & Assert
-        companyType.Should().HaveProperty("Id").Which.PropertyType.Should().Be<int>();
-        companyType.Should().HaveProperty("Name").Which.PropertyType.Should().Be<string>();
-        companyType.Should().HaveProperty("IsActive").Which.PropertyType.Should().Be<bool>();
-        companyType.Should().HaveProperty("CreatedAt").Which.PropertyType.Should().Be<DateTime>();
-        companyType.Should().HaveProperty("UpdatedAt").Which.PropertyType.Should().Be<DateTime>();
+        companyType.Should().HaveProperty<int>("Id");
+        companyType.Should().HaveProperty<string>("Name");
+        companyType.Should().HaveProperty<bool>("IsActive");
+        companyType.Should().HaveProperty<DateTime>("CreatedAt");
+        companyType.Should().HaveProperty<DateTime>("UpdatedAt");
     }
 
     [Fact]
@@ -110,11 +110,11 @@ public class CoreClientTestsCompilable
         var userType = typeof(User);
 
         // Act & Assert
-        userType.Should().HaveProperty("Id").Which.PropertyType.Should().Be<int>();
-        userType.Should().HaveProperty("Email").Which.PropertyType.Should().Be<string>();
-        userType.Should().HaveProperty("FirstName").Which.PropertyType.Should().Be<string>();
-        userType.Should().HaveProperty("LastName").Which.PropertyType.Should().Be<string>();
-        userType.Should().HaveProperty("IsActive").Which.PropertyType.Should().Be<bool>();
+        userType.Should().HaveProperty<int>("Id");
+        userType.Should().HaveProperty<string>("Email");
+        userType.Should().HaveProperty<string>("FirstName");
+        userType.Should().HaveProperty<string>("LastName");
+        userType.Should().HaveProperty<bool>("IsActive");
     }
 
     [Fact]
@@ -124,12 +124,12 @@ public class CoreClientTestsCompilable
         var documentType = typeof(Document);
 
         // Act & Assert
-        documentType.Should().HaveProperty("Id").Which.PropertyType.Should().Be<int>();
-        documentType.Should().HaveProperty("Name").Which.PropertyType.Should().Be<string>();
-        documentType.Should().HaveProperty("FileName").Which.PropertyType.Should().Be<string>();
-        documentType.Should().HaveProperty("FileUrl").Which.PropertyType.Should().Be<string>();
-        documentType.Should().HaveProperty("FileSize").Which.PropertyType.Should().Be<long>();
-        documentType.Should().HaveProperty("ContentType").Which.PropertyType.Should().Be<string>();
+        documentType.Should().HaveProperty<int>("Id");
+        documentType.Should().HaveProperty<string>("Name");
+        documentType.Should().HaveProperty<string>("FileName");
+        documentType.Should().HaveProperty<string>("FileUrl");
+        documentType.Should().HaveProperty<long>("FileSize");
+        documentType.Should().HaveProperty<string>("ContentType");
     }
 
     #endregion
@@ -143,8 +143,8 @@ public class CoreClientTestsCompilable
         var exceptionType = typeof(ProcoreCoreException);
 
         // Act & Assert
-        exceptionType.Should().HaveProperty("ErrorCode").Which.PropertyType.Should().Be<string>();
-        exceptionType.Should().HaveProperty("Details");
+        exceptionType.Should().HaveProperty<string>("ErrorCode");
+        exceptionType.Should().HaveProperty<Dictionary<string, object>>("Details");
         exceptionType.Should().BeDerivedFrom<Exception>();
     }
 
@@ -166,8 +166,7 @@ public class CoreClientTestsCompilable
         var exceptionType = typeof(RateLimitExceededException);
 
         // Act & Assert
-        exceptionType.Should().HaveProperty("RetryAfter")
-            .Which.PropertyType.Should().Be<TimeSpan>();
+        exceptionType.Should().HaveProperty<TimeSpan>("RetryAfter");
     }
 
     #endregion
@@ -181,10 +180,10 @@ public class CoreClientTestsCompilable
         var requestType = typeof(CreateCompanyRequest);
 
         // Act & Assert
-        requestType.Should().HaveProperty("Name").Which.PropertyType.Should().Be<string>();
-        requestType.Should().HaveProperty("Description");
-        requestType.Should().HaveProperty("Address");
-        requestType.Should().HaveProperty("CustomFields");
+        requestType.Should().HaveProperty<string>("Name");
+        requestType.Should().HaveProperty<string>("Description");
+        requestType.Should().HaveProperty<Address>("Address");
+        requestType.Should().HaveProperty<Dictionary<string, object>>("CustomFields");
     }
 
     [Fact]
@@ -194,11 +193,11 @@ public class CoreClientTestsCompilable
         var paginationType = typeof(PaginationOptions);
 
         // Act & Assert
-        paginationType.Should().HaveProperty("Page").Which.PropertyType.Should().Be<int>();
-        paginationType.Should().HaveProperty("PerPage").Which.PropertyType.Should().Be<int>();
-        paginationType.Should().HaveProperty("SortBy");
-        paginationType.Should().HaveProperty("SortDirection");
-        paginationType.Should().HaveProperty("Filters");
+        paginationType.Should().HaveProperty<int>("Page");
+        paginationType.Should().HaveProperty<int>("PerPage");
+        paginationType.Should().HaveProperty<string>("SortBy");
+        paginationType.Should().HaveProperty<string>("SortDirection");
+        paginationType.Should().HaveProperty<Dictionary<string, object>>("Filters");
     }
 
     [Fact]
