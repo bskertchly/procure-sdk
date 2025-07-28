@@ -32,23 +32,37 @@ public class TokenManager : ITokenManager
     /// <param name="options">Procore authentication options</param>
     /// <param name="httpClient">HTTP client for making token requests</param>
     /// <param name="logger">Logger for diagnostic information</param>
+    /// <exception cref="ArgumentNullException">Thrown when any required parameter is null</exception>
     public TokenManager(
         ITokenStorage storage,
         IOptions<ProcoreAuthOptions> options,
         HttpClient httpClient,
         ILogger<TokenManager> logger)
     {
-        _storage = storage;
-        _options = options.Value;
-        _httpClient = httpClient;
-        _logger = logger;
+        _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+        _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _storageKey = $"procore_token_{_options.ClientId}";
     }
 
     /// <inheritdoc />
     public async Task<AccessToken?> GetAccessTokenAsync(CancellationToken cancellationToken = default)
     {
-        var token = await _storage.GetTokenAsync(_storageKey, cancellationToken);
+        AccessToken? token;
+        try
+        {
+            token = await _storage.GetTokenAsync(_storageKey, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve token from storage");
+            return null;
+        }
 
         if (token == null)
         {
@@ -108,6 +122,17 @@ public class TokenManager : ITokenManager
             var json = await response.Content.ReadAsStringAsync(cancellationToken);
             var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(json)
                 ?? throw new InvalidOperationException("Failed to deserialize token response");
+
+            // Validate required fields
+            if (string.IsNullOrEmpty(tokenResponse.AccessToken))
+            {
+                throw new InvalidOperationException("Token response missing required 'access_token' field");
+            }
+
+            if (string.IsNullOrEmpty(tokenResponse.TokenType))
+            {
+                throw new InvalidOperationException("Token response missing required 'token_type' field");
+            }
 
             var newToken = new AccessToken(
                 tokenResponse.AccessToken,

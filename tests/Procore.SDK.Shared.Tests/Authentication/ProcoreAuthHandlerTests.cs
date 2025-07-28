@@ -388,8 +388,9 @@ public class ProcoreAuthHandlerTests
         var request = new HttpRequestMessage(HttpMethod.Get, "https://api.procore.com/test");
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => _httpClient.SendAsync(request, cts.Token));
+        exception.Should().BeAssignableTo<OperationCanceledException>();
     }
 
     [Fact]

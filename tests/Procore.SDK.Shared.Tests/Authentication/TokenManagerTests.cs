@@ -405,8 +405,20 @@ public class TokenManagerTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
+        _mockStorage.GetTokenAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+                   .Returns(callInfo => 
+                   {
+                       var token = callInfo.Arg<CancellationToken>();
+                       if (token.IsCancellationRequested)
+                       {
+                           return Task.FromException<AccessToken?>(new OperationCanceledException(token));
+                       }
+                       return Task.FromResult<AccessToken?>(null);
+                   });
+
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => _tokenManager.GetAccessTokenAsync(cts.Token));
+        exception.Should().BeAssignableTo<OperationCanceledException>();
     }
 }

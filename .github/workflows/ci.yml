@@ -1,0 +1,282 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  test:
+    name: Test and Coverage
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Required for GitVersion and proper coverage reporting
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Run tests with coverage
+      run: |
+        dotnet test --no-build --configuration Release \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./coverage \
+          --logger trx \
+          --verbosity normal \
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+
+    - name: Generate coverage report
+      if: matrix.os == 'ubuntu-latest'
+      uses: danielpalme/ReportGenerator-GitHub-Action@5.3.8
+      with:
+        reports: 'coverage/**/*.cobertura.xml'
+        targetdir: 'coverage-report'
+        reporttypes: 'HtmlInline_AzurePipelines;Cobertura;JsonSummary'
+        verbosity: 'Info'
+
+    - name: Upload coverage reports to Codecov
+      if: matrix.os == 'ubuntu-latest'
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage/**/*.cobertura.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}
+        path: |
+          TestResults/**/*.trx
+          coverage/**/*.cobertura.xml
+
+    - name: Upload coverage report
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage-report/
+
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Run security analysis
+      run: |
+        dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerable-packages.txt
+        if grep -q "has the following vulnerable packages" vulnerable-packages.txt; then
+          echo "❌ Vulnerable packages detected!"
+          cat vulnerable-packages.txt
+          exit 1
+        else
+          echo "✅ No vulnerable packages detected"
+        fi
+
+    - name: Check code formatting
+      run: |
+        dotnet format --verify-no-changes --verbosity diagnostic
+
+    - name: Download coverage reports
+      uses: actions/download-artifact@v4
+      with:
+        name: test-results-ubuntu-latest
+        path: coverage/
+
+    - name: Evaluate coverage thresholds
+      run: |
+        # Extract coverage percentage from Cobertura XML
+        COVERAGE=$(grep -o 'line-rate="[^"]*"' coverage/**/*.cobertura.xml | head -1 | grep -o '[0-9]*\.[0-9]*' | head -1)
+        
+        if [ -z "$COVERAGE" ]; then
+          echo "❌ Could not extract coverage percentage"
+          exit 1
+        fi
+        
+        COVERAGE_PERCENT=$(echo "$COVERAGE * 100" | bc -l | cut -d. -f1)
+        echo "📊 Code coverage: ${COVERAGE_PERCENT}%"
+        
+        # Set coverage thresholds
+        MIN_COVERAGE=80
+        WARN_COVERAGE=85
+        
+        if [ "$COVERAGE_PERCENT" -lt "$MIN_COVERAGE" ]; then
+          echo "❌ Coverage ${COVERAGE_PERCENT}% is below minimum threshold of ${MIN_COVERAGE}%"
+          exit 1
+        elif [ "$COVERAGE_PERCENT" -lt "$WARN_COVERAGE" ]; then
+          echo "⚠️ Coverage ${COVERAGE_PERCENT}% is below recommended threshold of ${WARN_COVERAGE}%"
+        else
+          echo "✅ Coverage ${COVERAGE_PERCENT}% meets quality standards"
+        fi
+
+  build-and-pack:
+    name: Build and Package
+    runs-on: ubuntu-latest
+    needs: [test, quality-gates]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v1.1.1
+      with:
+        versionSpec: '5.x'
+
+    - name: Determine version
+      uses: gittools/actions/gitversion/execute@v1.1.1
+      id: gitversion
+      with:
+        useConfigFile: true
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: |
+        dotnet build --no-restore --configuration Release \
+          -p:Version=${{ steps.gitversion.outputs.nuGetVersionV2 }} \
+          -p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemVer }} \
+          -p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }} \
+          -p:InformationalVersion=${{ steps.gitversion.outputs.informationalVersion }}
+
+    - name: Create NuGet packages
+      run: |
+        dotnet pack --no-build --configuration Release \
+          --output ./packages \
+          -p:PackageVersion=${{ steps.gitversion.outputs.nuGetVersionV2 }}
+
+    - name: Upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages
+        path: ./packages/*.nupkg
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'integration-tests'))
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Run integration tests
+      env:
+        PROCORE_CLIENT_ID: ${{ secrets.PROCORE_TEST_CLIENT_ID }}
+        PROCORE_CLIENT_SECRET: ${{ secrets.PROCORE_TEST_CLIENT_SECRET }}
+        PROCORE_BASE_URL: ${{ secrets.PROCORE_TEST_BASE_URL }}
+      run: |
+        if [ -n "$PROCORE_CLIENT_ID" ] && [ -n "$PROCORE_CLIENT_SECRET" ]; then
+          echo "🧪 Running integration tests against test environment"
+          dotnet test tests/Procore.SDK.IntegrationTests.Live \
+            --configuration Release \
+            --logger trx \
+            --verbosity normal
+        else
+          echo "⏭️ Skipping integration tests - no credentials configured"
+        fi
+
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Run performance benchmarks
+      run: |
+        if [ -d "tests/Procore.SDK.Benchmarks" ]; then
+          echo "🚀 Running performance benchmarks"
+          dotnet run --project tests/Procore.SDK.Benchmarks \
+            --configuration Release \
+            --framework net8.0 \
+            -- --exporters json --artifacts ./benchmark-results
+        else
+          echo "⏭️ No benchmark project found"
+        fi
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: benchmark-results
+        path: benchmark-results/
