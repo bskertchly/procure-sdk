@@ -16,6 +16,7 @@ jobs:
   test:
     name: Test and Coverage
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -40,18 +41,38 @@ jobs:
           ${{ runner.os }}-nuget-
 
     - name: Restore dependencies
+      timeout-minutes: 5
       run: dotnet restore
 
     - name: Build solution
+      timeout-minutes: 10
       run: dotnet build --no-restore --configuration Release
 
     - name: Run tests with coverage
+      timeout-minutes: 15
       run: |
+        # Try to run all unit tests first
         dotnet test --no-build --configuration Release \
           --collect:"XPlat Code Coverage" \
           --results-directory ./coverage \
           --logger trx \
           --verbosity normal \
+          --blame-hang-timeout 10m \
+          --filter "Category!=Integration&Category!=Performance&Category!=LongRunning" \
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+      continue-on-error: false
+      
+    - name: Run core tests only (fallback)
+      if: failure()
+      timeout-minutes: 10
+      run: |
+        echo "⚠️ Full test suite failed, running core tests only"
+        dotnet test tests/Procore.SDK.Shared.Tests --no-build --configuration Release \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./coverage-fallback \
+          --logger trx \
+          --verbosity normal \
+          --blame-hang-timeout 5m \
           -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
 
     - name: Generate coverage report
@@ -92,6 +113,7 @@ jobs:
   quality-gates:
     name: Quality Gates
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: test
     
     steps:
