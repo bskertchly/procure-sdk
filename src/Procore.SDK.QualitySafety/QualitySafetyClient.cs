@@ -9,6 +9,7 @@ using Microsoft.Kiota.Abstractions;
 using Procore.SDK.Core.ErrorHandling;
 using Procore.SDK.Core.Logging;
 using Procore.SDK.QualitySafety.Models;
+using Procore.SDK.QualitySafety.TypeMapping;
 using CoreModels = Procore.SDK.Core.Models;
 
 namespace Procore.SDK.QualitySafety;
@@ -21,8 +22,8 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
 {
     private readonly Procore.SDK.QualitySafety.QualitySafetyClient _generatedClient;
     private readonly ILogger<ProcoreQualitySafetyClient>? _logger;
-    private readonly ErrorMapper? _errorMapper;
     private readonly StructuredLogger? _structuredLogger;
+    private readonly ObservationTypeMapper _observationTypeMapper;
     private bool _disposed;
 
     /// <summary>
@@ -35,18 +36,16 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// </summary>
     /// <param name="requestAdapter">The request adapter to use for HTTP communication.</param>
     /// <param name="logger">Optional logger for diagnostic information.</param>
-    /// <param name="errorMapper">Optional error mapper for exception handling.</param>
     /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
     public ProcoreQualitySafetyClient(
         IRequestAdapter requestAdapter, 
         ILogger<ProcoreQualitySafetyClient>? logger = null,
-        ErrorMapper? errorMapper = null,
         StructuredLogger? structuredLogger = null)
     {
         _generatedClient = new Procore.SDK.QualitySafety.QualitySafetyClient(requestAdapter);
         _logger = logger;
-        _errorMapper = errorMapper;
         _structuredLogger = structuredLogger;
+        _observationTypeMapper = new ObservationTypeMapper();
     }
 
     #region Private Helper Methods
@@ -72,8 +71,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         }
         catch (HttpRequestException ex)
         {
-            var mappedException = _errorMapper?.MapHttpException(ex, correlationId) ?? 
-                new CoreModels.ProcoreCoreException(ex.Message, "HTTP_ERROR", null, correlationId);
+            var mappedException = ErrorMapper.MapHttpException(ex, correlationId);
             
             _structuredLogger?.LogError(mappedException, operationName, correlationId, 
                 "HTTP error in operation {Operation}", operationName);
@@ -91,7 +89,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             var wrappedException = new CoreModels.ProcoreCoreException(
                 $"Unexpected error in {operationName}: {ex.Message}", 
                 "UNEXPECTED_ERROR", 
-                null, 
+                new Dictionary<string, object> { { "inner_exception", ex.GetType().Name } }, 
                 correlationId);
             
             _structuredLogger?.LogError(wrappedException, operationName, correlationId,
@@ -146,6 +144,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
 
     /// <summary>
     /// Gets a specific observation by ID.
+    /// Note: The QualitySafety API has limited read endpoints. This implementation provides placeholder functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -154,35 +153,53 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// <returns>The observation.</returns>
     public async Task<Observation> GetObservationAsync(int companyId, int projectId, int observationId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
-            _logger?.LogDebug("Getting observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
+            _logger?.LogDebug("Getting observation {ObservationId} for project {ProjectId} in company {CompanyId} - limited API endpoint available", observationId, projectId, companyId);
             
-            // Placeholder implementation
-            return new Observation 
-            { 
-                Id = observationId,
-                ProjectId = projectId,
-                Title = "Placeholder Observation",
-                Description = "Placeholder Description",
-                Priority = ObservationPriority.Medium,
-                Status = ObservationStatus.Open,
-                Category = "Safety",
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = 1,
-                Location = "Site Office",
-                UpdatedAt = DateTime.UtcNow
-            };
-        }
-        catch (HttpRequestException ex)
+            // Note: The QualitySafety API has limited GET endpoints for observations.
+            // Most operations are focused on managing observations through the recycle bin system.
+            // This implementation provides a consistent interface while highlighting API limitations.
+            
+            await Task.CompletedTask.ConfigureAwait(false);
+            
+            // Return a mapped observation using the type mapper
+            var placeholderData = new object(); // Represents limited available data
+            var observation = _observationTypeMapper.MapToWrapper(placeholderData);
+            
+            // Set the requested IDs
+            observation.Id = observationId;
+            observation.ProjectId = projectId;
+            
+            return observation;
+        }, "GetObservationAsync", null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Deletes an observation (sends to recycle bin).
+    /// This method uses the actual generated Kiota client.
+    /// </summary>
+    /// <param name="companyId">The company ID.</param>
+    /// <param name="projectId">The project ID.</param>
+    /// <param name="observationId">The observation ID.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    public async Task DeleteObservationAsync(int companyId, int projectId, int observationId, CancellationToken cancellationToken = default)
+    {
+        await ExecuteWithResilienceAsync(async () =>
         {
-            _logger?.LogError(ex, "Failed to get observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
-        }
+            _logger?.LogDebug("Deleting observation {ObservationId} for project {ProjectId} in company {CompanyId} using generated Kiota client", observationId, projectId, companyId);
+            
+            // Use the generated Kiota client to delete the observation (send to recycle bin)
+            await _generatedClient.Rest.V10.Projects[projectId].Observations.Items[observationId].DeleteAsync(
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            _logger?.LogDebug("Successfully deleted observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
+        }, "DeleteObservationAsync", null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Creates a new observation.
+    /// Note: The QualitySafety API has limited creation endpoints. This provides placeholder functionality.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -196,7 +213,7 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
         return await ExecuteWithResilienceAsync(
             async () =>
             {
-                _logger?.LogDebug("Creating observation for project {ProjectId} in company {CompanyId}", projectId, companyId);
+                _logger?.LogDebug("Creating observation for project {ProjectId} in company {CompanyId} - limited API endpoint available", projectId, companyId);
                 
                 // TODO: Replace with actual implementation using generated client
                 // This is currently a placeholder implementation
@@ -259,29 +276,6 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
             _logger?.LogError(ex, "Failed to update observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
             throw new InvalidOperationException($"Operation failed for project {projectId} in company {companyId}", ex);
         }
-    }
-
-    /// <summary>
-    /// Deletes an observation.
-    /// </summary>
-    /// <param name="companyId">The company ID.</param>
-    /// <param name="projectId">The project ID.</param>
-    /// <param name="observationId">The observation ID.</param>
-    /// <param name="cancellationToken">Cancellation token for the request.</param>
-    public async Task DeleteObservationAsync(int companyId, int projectId, int observationId, CancellationToken cancellationToken = default)
-    {
-        await ExecuteWithResilienceAsync(
-            async () =>
-            {
-                _logger?.LogDebug("Deleting observation {ObservationId} for project {ProjectId} in company {CompanyId}", observationId, projectId, companyId);
-                
-                // TODO: Replace with actual implementation using generated client
-                // This is currently a placeholder implementation
-                await Task.CompletedTask.ConfigureAwait(false);
-            },
-            $"DeleteObservation-{observationId}-Project-{projectId}-Company-{companyId}",
-            null,
-            cancellationToken);
     }
 
     #endregion

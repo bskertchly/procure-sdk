@@ -8,8 +8,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Kiota.Abstractions;
 using Procore.SDK.Core.ErrorHandling;
 using Procore.SDK.Core.Logging;
+using Procore.SDK.Core.TypeMapping;
 using Procore.SDK.FieldProductivity.Models;
+using Procore.SDK.FieldProductivity.TypeMapping;
 using CoreModels = Procore.SDK.Core.Models;
+using GeneratedTimecardEntryResponse = Procore.SDK.FieldProductivity.Rest.V10.Companies.Item.Timecard_entries.Item.Timecard_entriesGetResponse;
 
 namespace Procore.SDK.FieldProductivity;
 
@@ -21,8 +24,8 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
 {
     private readonly Procore.SDK.FieldProductivity.FieldProductivityClient _generatedClient;
     private readonly ILogger<ProcoreFieldProductivityClient>? _logger;
-    private readonly ErrorMapper? _errorMapper;
     private readonly StructuredLogger? _structuredLogger;
+    private readonly ITypeMapper<ProductivityReport, GeneratedTimecardEntryResponse>? _timecardMapper;
     private bool _disposed;
 
     /// <summary>
@@ -35,18 +38,18 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// </summary>
     /// <param name="requestAdapter">The request adapter to use for HTTP communication.</param>
     /// <param name="logger">Optional logger for diagnostic information.</param>
-    /// <param name="errorMapper">Optional error mapper for exception handling.</param>
     /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
+    /// <param name="timecardMapper">Optional type mapper for timecard entry conversion.</param>
     public ProcoreFieldProductivityClient(
         IRequestAdapter requestAdapter, 
         ILogger<ProcoreFieldProductivityClient>? logger = null,
-        ErrorMapper? errorMapper = null,
-        StructuredLogger? structuredLogger = null)
+        StructuredLogger? structuredLogger = null,
+        ITypeMapper<ProductivityReport, GeneratedTimecardEntryResponse>? timecardMapper = null)
     {
         _generatedClient = new Procore.SDK.FieldProductivity.FieldProductivityClient(requestAdapter);
         _logger = logger;
-        _errorMapper = errorMapper;
         _structuredLogger = structuredLogger;
+        _timecardMapper = timecardMapper ?? new TimecardEntryTypeMapper();
     }
 
     #region Private Helper Methods
@@ -72,8 +75,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
         }
         catch (HttpRequestException ex)
         {
-            var mappedException = _errorMapper?.MapHttpException(ex, correlationId) ?? 
-                new CoreModels.ProcoreCoreException(ex.Message, "HTTP_ERROR", null, correlationId);
+            var mappedException = ErrorMapper.MapHttpException(ex, correlationId);
             
             _structuredLogger?.LogError(mappedException, operationName, correlationId, 
                 "HTTP error in operation {Operation}", operationName);
@@ -123,6 +125,8 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
 
     /// <summary>
     /// Gets all productivity reports for a project.
+    /// Note: Currently uses placeholder data as direct productivity report listing endpoints may not be available.
+    /// In a real implementation, this could aggregate data from timecard entries or other sources.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -135,17 +139,122 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
             {
                 _logger?.LogDebug("Getting productivity reports for project {ProjectId} in company {CompanyId}", projectId, companyId);
                 
-                // Placeholder implementation
+                // Placeholder implementation - in real scenario, this could aggregate from timecard entries
+                // or use specific productivity reporting endpoints when available
+                _logger?.LogWarning("GetProductivityReportsAsync currently returns empty - consider aggregating from timecard entries");
+                
                 await Task.CompletedTask.ConfigureAwait(false);
                 return Enumerable.Empty<ProductivityReport>();
             },
-            $"GetProductivityReports-Project-{projectId}-Company-{companyId}",
+            nameof(GetProductivityReportsAsync),
             null,
             cancellationToken);
     }
 
     /// <summary>
+    /// Gets a specific timecard entry by ID and maps it to a productivity report using the V1.0 API.
+    /// </summary>
+    /// <param name="companyId">The company ID.</param>
+    /// <param name="timecardEntryId">The timecard entry ID.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The productivity report based on timecard entry data.</returns>
+    public async Task<ProductivityReport> GetTimecardEntryAsync(int companyId, int timecardEntryId, CancellationToken cancellationToken = default)
+    {
+        return await ExecuteWithResilienceAsync(async () =>
+        {
+            _logger?.LogDebug("Getting timecard entry {TimecardEntryId} for company {CompanyId} using generated Kiota client", timecardEntryId, companyId);
+            
+            // Use the generated Kiota client to get timecard entry
+            var timecardResponse = await _generatedClient.Rest.V10.Companies[companyId].Timecard_entries[timecardEntryId]
+                .GetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            if (timecardResponse == null)
+            {
+                _logger?.LogWarning("No timecard entry returned for ID {TimecardEntryId} in company {CompanyId}", timecardEntryId, companyId);
+                throw new InvalidOperationException($"Timecard entry {timecardEntryId} not found");
+            }
+            
+            // Map from generated response to our domain model using type mapper
+            var productivityReport = _timecardMapper.MapToWrapper(timecardResponse);
+            
+            return productivityReport;
+        }, nameof(GetTimecardEntryAsync), null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Deletes a specific timecard entry using the V1.0 API.
+    /// </summary>
+    /// <param name="companyId">The company ID.</param>
+    /// <param name="timecardEntryId">The timecard entry ID.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The deleted timecard entry mapped to a productivity report.</returns>
+    public async Task<ProductivityReport> DeleteTimecardEntryAsync(int companyId, int timecardEntryId, CancellationToken cancellationToken = default)
+    {
+        return await ExecuteWithResilienceAsync(async () =>
+        {
+            _logger?.LogDebug("Deleting timecard entry {TimecardEntryId} for company {CompanyId} using generated Kiota client", timecardEntryId, companyId);
+            
+            // Use the generated Kiota client to delete timecard entry
+            var deleteResponse = await _generatedClient.Rest.V10.Companies[companyId].Timecard_entries[timecardEntryId]
+                .DeleteAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            if (deleteResponse == null)
+            {
+                _logger?.LogWarning("No response from timecard entry deletion for ID {TimecardEntryId} in company {CompanyId}", timecardEntryId, companyId);
+                throw new InvalidOperationException($"Failed to delete timecard entry {timecardEntryId}");
+            }
+            
+            // Create a productivity report representing the deleted timecard entry
+            return new ProductivityReport
+            {
+                Id = timecardEntryId,
+                ProjectId = ExtractProjectIdFromDeleteResponse(deleteResponse.AdditionalData),
+                ReportDate = DateTime.UtcNow,
+                ActivityType = "Deleted Entry",
+                UnitsCompleted = 0,
+                HoursWorked = 0,
+                ProductivityRate = 0,
+                CrewSize = 0,
+                Weather = "N/A",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+        }, nameof(DeleteTimecardEntryAsync), null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Helper method to extract project ID from delete response additional data.
+    /// </summary>
+    private static int ExtractProjectIdFromDeleteResponse(IDictionary<string, object>? additionalData)
+    {
+        if (additionalData == null)
+            return 0;
+
+        foreach (var key in new[] { "project_id", "project" })
+        {
+            if (additionalData.TryGetValue(key, out var value) && value != null)
+            {
+                if (value is Dictionary<string, object> projectObj)
+                {
+                    if (projectObj.TryGetValue("id", out var projectId) && projectId != null)
+                    {
+                        if (int.TryParse(projectId.ToString(), out var id))
+                            return id;
+                    }
+                }
+                else if (int.TryParse(value.ToString(), out var id))
+                {
+                    return id;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>
     /// Gets a specific productivity report by ID.
+    /// Note: This is a placeholder implementation that returns mock data.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -154,7 +263,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// <returns>The productivity report.</returns>
     public async Task<ProductivityReport> GetProductivityReportAsync(int companyId, int projectId, int reportId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting productivity report {ReportId} for project {ProjectId} in company {CompanyId}", reportId, projectId, companyId);
             
@@ -173,12 +282,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get productivity report {ReportId} for project {ProjectId} in company {CompanyId}", reportId, projectId, companyId);
-            throw;
-        }
+        }, nameof(GetProductivityReportAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -217,7 +321,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
                     UpdatedAt = DateTime.UtcNow
                 };
             },
-            $"CreateProductivityReport-{request.ActivityType}-Project-{projectId}-Company-{companyId}",
+            nameof(CreateProductivityReportAsync),
             null,
             cancellationToken);
     }
@@ -235,19 +339,14 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// <returns>A collection of field activities.</returns>
     public async Task<IEnumerable<FieldActivity>> GetFieldActivitiesAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting field activities for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
             await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<FieldActivity>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get field activities for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        }, nameof(GetFieldActivitiesAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -260,7 +359,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// <returns>The field activity.</returns>
     public async Task<FieldActivity> GetFieldActivityAsync(int companyId, int projectId, int activityId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting field activity {ActivityId} for project {ProjectId} in company {CompanyId}", activityId, projectId, companyId);
             
@@ -278,12 +377,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get field activity {ActivityId} for project {ProjectId} in company {CompanyId}", activityId, projectId, companyId);
-            throw;
-        }
+        }, nameof(GetFieldActivityAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -297,9 +391,9 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// <returns>The updated field activity.</returns>
     public async Task<FieldActivity> UpdateFieldActivityAsync(int companyId, int projectId, int activityId, UpdateFieldActivityRequest request, CancellationToken cancellationToken = default)
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Updating field activity {ActivityId} for project {ProjectId} in company {CompanyId}", activityId, projectId, companyId);
             
@@ -314,12 +408,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
                 CompletionDate = request.CompletionDate,
                 UpdatedAt = DateTime.UtcNow
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to update field activity {ActivityId} for project {ProjectId} in company {CompanyId}", activityId, projectId, companyId);
-            throw;
-        }
+        }, nameof(UpdateFieldActivityAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
@@ -335,19 +424,14 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// <returns>A collection of resource utilization records.</returns>
     public async Task<IEnumerable<ResourceUtilization>> GetResourceUtilizationAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting resource utilization for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
             await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<ResourceUtilization>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get resource utilization for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        }, nameof(GetResourceUtilizationAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -385,7 +469,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
                     UpdatedAt = DateTime.UtcNow
                 };
             },
-            $"RecordResourceUtilization-{request.ResourceType}-Project-{projectId}-Company-{companyId}",
+            nameof(RecordResourceUtilizationAsync),
             null,
             cancellationToken);
     }
@@ -403,19 +487,14 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// <returns>A collection of performance metrics.</returns>
     public async Task<IEnumerable<PerformanceMetric>> GetPerformanceMetricsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting performance metrics for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
             await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<PerformanceMetric>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get performance metrics for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        }, nameof(GetPerformanceMetricsAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -433,7 +512,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
         if (string.IsNullOrEmpty(metricName)) throw new ArgumentException("Metric name cannot be null or empty", nameof(metricName));
         if (string.IsNullOrEmpty(unit)) throw new ArgumentException("Unit cannot be null or empty", nameof(unit));
         
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Recording performance metric {MetricName} for project {ProjectId} in company {CompanyId}", metricName, projectId, companyId);
             
@@ -450,12 +529,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to record performance metric {MetricName} for project {ProjectId} in company {CompanyId}", metricName, projectId, companyId);
-            throw;
-        }
+        }, nameof(RecordPerformanceMetricAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
@@ -474,19 +548,14 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     {
         if (string.IsNullOrEmpty(activityType)) throw new ArgumentException("Activity type cannot be null or empty", nameof(activityType));
         
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting average productivity rate for activity type {ActivityType} in project {ProjectId} in company {CompanyId}", activityType, projectId, companyId);
             
             // Placeholder implementation
             await Task.CompletedTask.ConfigureAwait(false);
             return 15.5m;
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get average productivity rate for activity type {ActivityType} in project {ProjectId} in company {CompanyId}", activityType, projectId, companyId);
-            throw;
-        }
+        }, nameof(GetAverageProductivityRateAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -498,7 +567,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// <returns>A dictionary with productivity summary by activity type.</returns>
     public async Task<Dictionary<string, decimal>> GetProductivitySummaryAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting productivity summary for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
@@ -512,12 +581,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
                 ["Electrical"] = 8.7m,
                 ["Plumbing"] = 9.2m
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get productivity summary for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        }, nameof(GetProductivitySummaryAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -530,19 +594,14 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// <returns>A collection of under-utilized resources.</returns>
     public async Task<IEnumerable<ResourceUtilization>> GetUnderUtilizedResourcesAsync(int companyId, int projectId, decimal threshold, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting under-utilized resources (threshold: {Threshold}%) for project {ProjectId} in company {CompanyId}", threshold, projectId, companyId);
             
             // Placeholder implementation
             await Task.CompletedTask.ConfigureAwait(false);
             return Enumerable.Empty<ResourceUtilization>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get under-utilized resources for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        }, nameof(GetUnderUtilizedResourcesAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
@@ -559,9 +618,9 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// <returns>A paged result of productivity reports.</returns>
     public async Task<CoreModels.PagedResult<ProductivityReport>> GetProductivityReportsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting productivity reports with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
@@ -576,12 +635,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
                 HasNextPage = false,
                 HasPreviousPage = false
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get productivity reports with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        }, nameof(GetProductivityReportsPagedAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -594,9 +648,9 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// <returns>A paged result of field activities.</returns>
     public async Task<CoreModels.PagedResult<FieldActivity>> GetFieldActivitiesPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default)
     {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting field activities with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
@@ -611,12 +665,7 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
                 HasNextPage = false,
                 HasPreviousPage = false
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get field activities with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw;
-        }
+        }, nameof(GetFieldActivitiesPagedAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
