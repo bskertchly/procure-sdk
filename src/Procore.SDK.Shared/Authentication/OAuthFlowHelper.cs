@@ -25,10 +25,11 @@ public class OAuthFlowHelper
     /// </summary>
     /// <param name="options">Procore authentication options</param>
     /// <param name="httpClient">HTTP client for making token requests</param>
+    /// <exception cref="ArgumentNullException">Thrown when any required parameter is null</exception>
     public OAuthFlowHelper(IOptions<ProcoreAuthOptions> options, HttpClient httpClient)
     {
-        _options = options.Value;
-        _httpClient = httpClient;
+        _options = (options ?? throw new ArgumentNullException(nameof(options))).Value;
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
 
     /// <summary>
@@ -69,6 +70,7 @@ public class OAuthFlowHelper
     /// <param name="codeVerifier">The code verifier that was used to generate the code challenge</param>
     /// <param name="cancellationToken">Token to cancel the operation</param>
     /// <returns>The access token received from the token endpoint</returns>
+    /// <exception cref="ArgumentException">Thrown when code or codeVerifier is null or whitespace</exception>
     /// <exception cref="HttpRequestException">Thrown when the HTTP request fails</exception>
     /// <exception cref="JsonException">Thrown when the response cannot be parsed</exception>
     public async Task<AccessToken> ExchangeCodeForTokenAsync(
@@ -76,6 +78,10 @@ public class OAuthFlowHelper
         string codeVerifier,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(code))
+            throw new ArgumentException("Authorization code cannot be null or whitespace", nameof(code));
+        if (string.IsNullOrWhiteSpace(codeVerifier))
+            throw new ArgumentException("Code verifier cannot be null or whitespace", nameof(codeVerifier));
         var request = new HttpRequestMessage(HttpMethod.Post, _options.TokenEndpoint)
         {
             Content = new FormUrlEncodedContent(new[]

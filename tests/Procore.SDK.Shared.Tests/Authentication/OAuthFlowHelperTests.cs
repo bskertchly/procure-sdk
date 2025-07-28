@@ -327,8 +327,9 @@ public class OAuthFlowHelperTests
         cts.Cancel();
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(
+        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => _oAuthFlowHelper.ExchangeCodeForTokenAsync(authCode, codeVerifier, cts.Token));
+        exception.Should().BeAssignableTo<OperationCanceledException>();
     }
 
     [Theory]

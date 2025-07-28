@@ -23,10 +23,11 @@ public class ProcoreAuthHandler : DelegatingHandler
     /// </summary>
     /// <param name="tokenManager">Token manager for retrieving and refreshing tokens</param>
     /// <param name="logger">Logger for diagnostic information</param>
+    /// <exception cref="ArgumentNullException">Thrown when any required parameter is null</exception>
     public ProcoreAuthHandler(ITokenManager tokenManager, ILogger<ProcoreAuthHandler> logger)
     {
-        _tokenManager = tokenManager;
-        _logger = logger;
+        _tokenManager = tokenManager ?? throw new ArgumentNullException(nameof(tokenManager));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <inheritdoc />
@@ -62,6 +63,10 @@ public class ProcoreAuthHandler : DelegatingHandler
 
                 _logger.LogDebug("Token refresh and retry completed with status: {StatusCode}", response.StatusCode);
             }
+            catch (ObjectDisposedException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to refresh token on 401 response");
@@ -90,16 +95,23 @@ public class ProcoreAuthHandler : DelegatingHandler
             return; // Already has authorization header
         }
 
-        var token = await _tokenManager.GetAccessTokenAsync(cancellationToken);
-        if (token != null)
+        try
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue(
-                token.TokenType, token.Token);
-            _logger.LogTrace("Added authorization header to request");
+            var token = await _tokenManager.GetAccessTokenAsync(cancellationToken);
+            if (token != null)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue(
+                    token.TokenType, token.Token);
+                _logger.LogTrace("Added authorization header to request");
+            }
+            else
+            {
+                _logger.LogDebug("No access token available, request will be sent without authorization");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            _logger.LogDebug("No access token available, request will be sent without authorization");
+            _logger.LogWarning(ex, "Failed to retrieve access token, request will be sent without authorization");
         }
     }
 
@@ -127,12 +139,19 @@ public class ProcoreAuthHandler : DelegatingHandler
         // Copy content
         if (request.Content != null)
         {
-            var content = await request.Content.ReadAsByteArrayAsync(cancellationToken);
-            clone.Content = new ByteArrayContent(content);
-
-            foreach (var header in request.Content.Headers)
+            try
             {
-                clone.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                var content = await request.Content.ReadAsByteArrayAsync(cancellationToken);
+                clone.Content = new ByteArrayContent(content);
+
+                foreach (var header in request.Content.Headers)
+                {
+                    clone.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                throw;
             }
         }
 
