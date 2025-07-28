@@ -58,4 +58,13 @@ public interface IQualitySafetyClient : IDisposable
     Task<CoreModels.PagedResult<Observation>> GetObservationsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
     Task<CoreModels.PagedResult<InspectionTemplate>> GetInspectionTemplatesPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
     Task<CoreModels.PagedResult<SafetyIncident>> GetSafetyIncidentsPagedAsync(int companyId, int projectId, CoreModels.PaginationOptions options, CancellationToken cancellationToken = default);
+
+    // Advanced Query Operations
+    Task<IEnumerable<SafetyIncident>> GetSafetyIncidentsWithFiltersAsync(int companyId, int projectId, SafetyIncidentFilters filters, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Observation>> GetObservationsWithQueryAsync(int companyId, int projectId, ObservationQueryOptions queryOptions, CancellationToken cancellationToken = default);
+
+    // Bulk Operations
+    Task<IEnumerable<Observation>> CreateObservationsBulkAsync(int companyId, int projectId, IEnumerable<CreateObservationRequest> requests, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Observation>> UpdateObservationsBulkAsync(int companyId, int projectId, IEnumerable<BulkObservationUpdate> updates, CancellationToken cancellationToken = default);
+    Task DeleteObservationsBulkAsync(int companyId, int projectId, IEnumerable<int> observationIds, CancellationToken cancellationToken = default);
 }
