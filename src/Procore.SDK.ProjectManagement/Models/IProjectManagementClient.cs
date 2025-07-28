@@ -48,16 +48,18 @@ public interface IProjectManagementClient : IDisposable
     Task<Meeting> CreateMeetingAsync(int companyId, int projectId, CreateMeetingRequest request, CancellationToken cancellationToken = default);
     Task<Meeting> UpdateMeetingAsync(int companyId, int projectId, int meetingId, CreateMeetingRequest request, CancellationToken cancellationToken = default);
 
-    // RFI Operations
-    Task<IEnumerable<Rfi>> GetRfisAsync(int projectId, CancellationToken cancellationToken = default);
-    Task<Rfi> GetRfiAsync(int projectId, int rfiId, CancellationToken cancellationToken = default);
-    Task<Rfi> CreateRfiAsync(int projectId, CreateRfiRequest request, CancellationToken cancellationToken = default);
-    Task<Rfi> UpdateRfiAsync(int projectId, int rfiId, UpdateRfiRequest request, CancellationToken cancellationToken = default);
-    Task DeleteRfiAsync(int projectId, int rfiId, CancellationToken cancellationToken = default);
+    // RFI Operations - TODO: Implement when RFI models are available
+    // Task<IEnumerable<Rfi>> GetRfisAsync(int projectId, CancellationToken cancellationToken = default);
+    // Task<Rfi> GetRfiAsync(int projectId, int rfiId, CancellationToken cancellationToken = default);
+    // Task<Rfi> CreateRfiAsync(int projectId, CreateRfiRequest request, CancellationToken cancellationToken = default);
+    // Task<Rfi> UpdateRfiAsync(int projectId, int rfiId, UpdateRfiRequest request, CancellationToken cancellationToken = default);
+    // Task DeleteRfiAsync(int projectId, int rfiId, CancellationToken cancellationToken = default);
 
-    // Drawing Management Operations
-    Task<IEnumerable<Drawing>> GetDrawingsAsync(int projectId, CancellationToken cancellationToken = default);
-    Task<Drawing> GetDrawingAsync(int projectId, int drawingId, CancellationToken cancellationToken = default);\n\n    // Convenience Methods
+    // Drawing Management Operations - TODO: Implement when Drawing models are available
+    // Task<IEnumerable<Drawing>> GetDrawingsAsync(int projectId, CancellationToken cancellationToken = default);
+    // Task<Drawing> GetDrawingAsync(int projectId, int drawingId, CancellationToken cancellationToken = default);
+
+    // Convenience Methods
     Task<IEnumerable<Project>> GetActiveProjectsAsync(int companyId, CancellationToken cancellationToken = default);
     Task<Project> GetProjectByNameAsync(int companyId, string projectName, CancellationToken cancellationToken = default);
     Task<decimal> GetProjectBudgetTotalAsync(int companyId, int projectId, CancellationToken cancellationToken = default);
