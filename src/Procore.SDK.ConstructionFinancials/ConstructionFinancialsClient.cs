@@ -24,7 +24,6 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
 {
     private readonly Procore.SDK.ConstructionFinancials.ConstructionFinancialsClient _generatedClient;
     private readonly ILogger<ProcoreConstructionFinancialsClient>? _logger;
-    private readonly ErrorMapper? _errorMapper;
     private readonly StructuredLogger? _structuredLogger;
     private readonly ITypeMapper<Invoice, GeneratedDocumentResponse>? _invoiceMapper;
     private bool _disposed;
@@ -39,21 +38,18 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// </summary>
     /// <param name="requestAdapter">The request adapter to use for HTTP communication.</param>
     /// <param name="logger">Optional logger for diagnostic information.</param>
-    /// <param name="errorMapper">Optional error mapper for exception handling.</param>
     /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
     /// <param name="invoiceMapper">Optional type mapper for invoice conversion.</param>
     public ProcoreConstructionFinancialsClient(
         IRequestAdapter requestAdapter, 
         ILogger<ProcoreConstructionFinancialsClient>? logger = null,
-        ErrorMapper? errorMapper = null,
         StructuredLogger? structuredLogger = null,
         ITypeMapper<Invoice, GeneratedDocumentResponse>? invoiceMapper = null)
     {
         _generatedClient = new Procore.SDK.ConstructionFinancials.ConstructionFinancialsClient(requestAdapter);
         _logger = logger;
-        _errorMapper = errorMapper;
         _structuredLogger = structuredLogger;
-        _invoiceMapper = invoiceMapper;
+        _invoiceMapper = invoiceMapper ?? new InvoiceTypeMapper();
     }
 
     #region Private Helper Methods
@@ -79,8 +75,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
         }
         catch (HttpRequestException ex)
         {
-            var mappedException = _errorMapper?.MapHttpException(ex, correlationId) ?? 
-                new CoreModels.ProcoreCoreException(ex.Message, "HTTP_ERROR", null, correlationId);
+            var mappedException = ErrorMapper.MapHttpException(ex, correlationId);
             
             _structuredLogger?.LogError(mappedException, operationName, correlationId, 
                 "HTTP error in operation {Operation}", operationName);
@@ -98,7 +93,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
             var wrappedException = new CoreModels.ProcoreCoreException(
                 $"Unexpected error in {operationName}: {ex.Message}", 
                 "UNEXPECTED_ERROR", 
-                null, 
+                new Dictionary<string, object> { { "inner_exception", ex.GetType().Name } }, 
                 correlationId);
             
             _structuredLogger?.LogError(wrappedException, operationName, correlationId,
@@ -129,8 +124,48 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     #region Invoice Operations
 
     /// <summary>
+    /// Gets compliance documents for a specific invoice.
+    /// Note: This uses the V2.0 compliance documents API endpoint.
+    /// </summary>
+    /// <param name="companyId">The company ID.</param>
+    /// <param name="projectId">The project ID.</param>
+    /// <param name="invoiceId">The invoice ID.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>Collection of compliance documents as invoice representation.</returns>
+    public async Task<IEnumerable<Invoice>> GetInvoiceComplianceDocumentsAsync(int companyId, int projectId, string invoiceId, CancellationToken cancellationToken = default)
+    {
+        return await ExecuteWithResilienceAsync(async () =>
+        {
+            _logger?.LogDebug("Getting compliance documents for invoice {InvoiceId} in project {ProjectId} company {CompanyId} using generated Kiota client", invoiceId, projectId, companyId);
+            
+            // Use the generated Kiota client to get compliance documents
+            var documentsResponse = await _generatedClient.Rest.V20.Companies[companyId.ToString()].Projects[projectId.ToString()].Compliance.Invoices[invoiceId].Documents.GetAsync(
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            if (documentsResponse?.Data == null)
+            {
+                _logger?.LogWarning("No compliance documents returned for invoice {InvoiceId} in project {ProjectId} company {CompanyId}", invoiceId, projectId, companyId);
+                return Enumerable.Empty<Invoice>();
+            }
+            
+            // Map from generated response to our domain models using type mapper
+            // Since we get documents, we create invoice objects representing the compliance state
+            var invoices = new List<Invoice>();
+            
+            // Create a representative invoice object based on the compliance documents
+            var invoice = _invoiceMapper.MapToWrapper(documentsResponse);
+            invoice.Id = int.TryParse(invoiceId, out var id) ? id : 0;
+            invoice.ProjectId = projectId;
+            
+            invoices.Add(invoice);
+            
+            return invoices;
+        }, "GetInvoiceComplianceDocumentsAsync", null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Gets all invoices for a project.
-    /// Note: Currently returns compliance invoice documents from V2.0 API.
+    /// Note: Currently returns placeholder data as direct invoice listing endpoints may not be available.
     /// </summary>
     /// <param name="companyId">The company ID.</param>
     /// <param name="projectId">The project ID.</param>
@@ -138,26 +173,19 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>A collection of invoices.</returns>
     public async Task<IEnumerable<Invoice>> GetInvoicesAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
-            _logger?.LogDebug("Getting invoices for project {ProjectId} in company {CompanyId}", projectId, companyId);
+            _logger?.LogDebug("Getting invoices for project {ProjectId} in company {CompanyId} - providing placeholder data", projectId, companyId);
             
-            // Note: This implementation uses compliance documents as a proxy for invoices
-            // The actual invoice endpoints may require different API access or versions
-            var invoices = new List<Invoice>();
-            
-            // Since we need an invoice ID to get documents, this method currently returns empty
-            // In a real implementation, you would first need to get the list of invoices
+            // Note: This implementation provides placeholder data since direct invoice listing 
+            // endpoints may require specific access levels or different API versions.
+            // The compliance documents endpoint requires an invoice ID.
+            // In a real implementation, you would first get invoice IDs 
             // from another endpoint or data source, then iterate through them
             _logger?.LogWarning("GetInvoicesAsync currently returns empty - requires invoice IDs to query compliance documents");
             
-            return invoices;
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get invoices for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+            return Enumerable.Empty<Invoice>();
+        }, nameof(GetInvoicesAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -223,7 +251,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Creating invoice for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
@@ -246,12 +274,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to create invoice for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        }, nameof(CreateInvoiceAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -264,7 +287,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>The approved invoice.</returns>
     public async Task<Invoice> ApproveInvoiceAsync(int companyId, int projectId, int invoiceId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Approving invoice {InvoiceId} for project {ProjectId} in company {CompanyId}", invoiceId, projectId, companyId);
             
@@ -276,12 +299,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
                 Status = InvoiceStatus.Approved,
                 UpdatedAt = DateTime.UtcNow
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to approve invoice {InvoiceId} for project {ProjectId} in company {CompanyId}", invoiceId, projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        }, nameof(ApproveInvoiceAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -300,7 +318,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
             throw new ArgumentException("Reason cannot be null or empty", nameof(reason));
         }
         
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Rejecting invoice {InvoiceId} for project {ProjectId} in company {CompanyId} with reason: {Reason}", invoiceId, projectId, companyId, reason);
             
@@ -313,12 +331,67 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
                 Description = $"Rejected: {reason}",
                 UpdatedAt = DateTime.UtcNow
             };
-        }
-        catch (HttpRequestException ex)
+        }, nameof(RejectInvoiceAsync), null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Creates a compliance document for an existing invoice using the V2.0 API.
+    /// Note: This creates compliance documents, not invoices themselves.
+    /// </summary>
+    /// <param name="companyId">The company ID.</param>
+    /// <param name="projectId">The project ID.</param>
+    /// <param name="invoiceId">The invoice ID to create compliance documents for.</param>
+    /// <param name="documentTitle">The title of the compliance document.</param>
+    /// <param name="documentDescription">The description of the compliance document.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The created compliance document represented as an invoice.</returns>
+    public async Task<Invoice> CreateInvoiceComplianceDocumentAsync(int companyId, int projectId, string invoiceId, string documentTitle, string documentDescription, CancellationToken cancellationToken = default)
+    {
+        return await ExecuteWithResilienceAsync(async () =>
         {
-            _logger?.LogError(ex, "Failed to reject invoice {InvoiceId} for project {ProjectId} in company {CompanyId}", invoiceId, projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+            _logger?.LogDebug("Creating compliance document for invoice {InvoiceId} in project {ProjectId} company {CompanyId}", invoiceId, projectId, companyId);
+            
+            // Create the POST request body using the generated types
+            var postBody = new Procore.SDK.ConstructionFinancials.Rest.V20.Companies.Item.Projects.Item.Compliance.Invoices.Item.Documents.DocumentsPostRequestBody
+            {
+                AdditionalData = new Dictionary<string, object>
+                {
+                    ["title"] = documentTitle,
+                    ["description"] = documentDescription,
+                    ["created_at"] = DateTime.UtcNow.ToString("O")
+                }
+            };
+            
+            // Use the generated Kiota client to create compliance document
+            var createResponse = await _generatedClient.Rest.V20.Companies[companyId.ToString()].Projects[projectId.ToString()].Compliance.Invoices[invoiceId].Documents
+                .PostAsync(postBody, cancellationToken: cancellationToken).ConfigureAwait(false);
+            
+            if (createResponse?.AdditionalData != null)
+            {
+                _logger?.LogDebug("Successfully created compliance document for invoice {InvoiceId}", invoiceId);
+                
+                // Return invoice representation with compliance document info
+                return new Invoice
+                {
+                    Id = int.TryParse(invoiceId, out var id) ? id : 0,
+                    ProjectId = projectId,
+                    InvoiceNumber = $"INV-{invoiceId}",
+                    Amount = 0m, // Amount not available in compliance document endpoint
+                    Status = InvoiceStatus.Submitted,
+                    InvoiceDate = DateTime.UtcNow,
+                    DueDate = null,
+                    VendorId = 0,
+                    Description = $"Invoice with compliance document: {documentTitle}",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+            }
+            else
+            {
+                _logger?.LogWarning("No response data from compliance document creation for invoice {InvoiceId}", invoiceId);
+                throw new InvalidOperationException($"Failed to create compliance document for invoice {invoiceId}");
+            }
+        }, nameof(CreateInvoiceComplianceDocumentAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
@@ -337,7 +410,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     {
         ArgumentNullException.ThrowIfNull(request);
         
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Processing payment for invoice {InvoiceId} in project {ProjectId} in company {CompanyId}", request.InvoiceId, projectId, companyId);
             
@@ -355,12 +428,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to process payment for invoice {InvoiceId} in project {ProjectId} in company {CompanyId}", request.InvoiceId, projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        }, nameof(ProcessPaymentAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -372,18 +440,13 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>A collection of financial transactions.</returns>
     public async Task<IEnumerable<FinancialTransaction>> GetTransactionsAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting transactions for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
             return Enumerable.Empty<FinancialTransaction>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get transactions for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        }, nameof(GetTransactionsAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
@@ -399,18 +462,13 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>A collection of cost codes.</returns>
     public async Task<IEnumerable<CostCode>> GetCostCodesAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting cost codes for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
             return Enumerable.Empty<CostCode>();
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get cost codes for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        }, nameof(GetCostCodesAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -423,7 +481,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>The cost code.</returns>
     public async Task<CostCode> GetCostCodeAsync(int companyId, int projectId, int costCodeId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting cost code {CostCodeId} for project {ProjectId} in company {CompanyId}", costCodeId, projectId, companyId);
             
@@ -439,12 +497,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get cost code {CostCodeId} for project {ProjectId} in company {CompanyId}", costCodeId, projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        }, nameof(GetCostCodeAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
@@ -460,18 +513,13 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>The total project cost.</returns>
     public async Task<decimal> GetProjectTotalCostAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting total cost for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
             // Placeholder implementation
             return 500000.00m;
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get total cost for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        }, nameof(GetProjectTotalCostAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -483,7 +531,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     /// <returns>A dictionary with cost summary by category.</returns>
     public async Task<Dictionary<string, decimal>> GetCostSummaryAsync(int companyId, int projectId, CancellationToken cancellationToken = default)
     {
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting cost summary for project {ProjectId} in company {CompanyId}", projectId, companyId);
             
@@ -496,12 +544,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
                 ["Subcontractors"] = 75000.00m,
                 ["Other"] = 25000.00m
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get cost summary for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        }, nameof(GetCostSummaryAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
@@ -520,7 +563,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     {
         ArgumentNullException.ThrowIfNull(options);
         
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting invoices with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
@@ -535,12 +578,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
                 HasNextPage = false,
                 HasPreviousPage = false
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get invoices with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        }, nameof(GetInvoicesPagedAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -555,7 +593,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
     {
         ArgumentNullException.ThrowIfNull(options);
         
-        try
+        return await ExecuteWithResilienceAsync(async () =>
         {
             _logger?.LogDebug("Getting transactions with pagination for project {ProjectId} in company {CompanyId} (page {Page}, per page {PerPage})", projectId, companyId, options.Page, options.PerPage);
             
@@ -570,12 +608,7 @@ public class ProcoreConstructionFinancialsClient : IConstructionFinancialsClient
                 HasNextPage = false,
                 HasPreviousPage = false
             };
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger?.LogError(ex, "Failed to get transactions with pagination for project {ProjectId} in company {CompanyId}", projectId, companyId);
-            throw new InvalidOperationException($"Operation failed for company {companyId}", ex);
-        }
+        }, nameof(GetTransactionsPagedAsync), null, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion

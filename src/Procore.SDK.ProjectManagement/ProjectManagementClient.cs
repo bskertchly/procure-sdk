@@ -80,8 +80,7 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
         }
         catch (HttpRequestException ex)
         {
-            var mappedException = _errorMapper?.MapHttpException(ex, correlationId) ?? 
-                new CoreModels.ProcoreCoreException(ex.Message, "HTTP_ERROR", null, correlationId);
+            var mappedException = ErrorMapper.MapHttpException(ex, correlationId);
             
             _structuredLogger?.LogError(mappedException, operationName, correlationId, 
                 "HTTP error in operation {Operation}", operationName);

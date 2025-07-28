@@ -20,6 +20,13 @@ public class Resource
     public DateTime? AvailableTo { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    
+    // Additional fields from Procore API
+    public int? CompanyId { get; set; }
+    public int? ProjectId { get; set; }
+    public string? SourceUid { get; set; }
+    public System.Collections.Generic.IDictionary<string, object>? ScheduleAttributes { get; set; }
+    public DateTime? DeletedAt { get; set; }
 }
 
 public enum ResourceType
