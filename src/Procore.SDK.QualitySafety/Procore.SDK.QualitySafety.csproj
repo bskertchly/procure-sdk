@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Procore.SDK.Core\Procore.SDK.Core.csproj" />
     <ProjectReference Include="..\Procore.SDK.Shared\Procore.SDK.Shared.csproj" />
   </ItemGroup>
 
