@@ -34,7 +34,6 @@ public class ResourceOperationTests : IDisposable
     
     private readonly IRequestAdapter _mockRequestAdapter;
     private readonly ILogger<ProcoreResourceManagementClient> _mockLogger;
-    private readonly ErrorMapper _mockErrorMapper;
     private readonly StructuredLogger _mockStructuredLogger;
     private readonly ProcoreResourceManagementClient _sut;
 
@@ -42,13 +41,12 @@ public class ResourceOperationTests : IDisposable
     {
         _mockRequestAdapter = Substitute.For<IRequestAdapter>();
         _mockLogger = Substitute.For<ILogger<ProcoreResourceManagementClient>>();
-        _mockErrorMapper = Substitute.For<ErrorMapper>();
-        _mockStructuredLogger = Substitute.For<StructuredLogger>();
+        var mockStructuredLoggerLogger = Substitute.For<ILogger<StructuredLogger>>();
+        _mockStructuredLogger = new StructuredLogger(mockStructuredLoggerLogger);
         
         _sut = new ProcoreResourceManagementClient(
             _mockRequestAdapter, 
             _mockLogger, 
-            _mockErrorMapper, 
             _mockStructuredLogger);
     }
 
@@ -294,8 +292,7 @@ public class ResourceOperationTests : IDisposable
             "Resource not found", 
             "RESOURCE_NOT_FOUND");
         
-        _mockErrorMapper.MapHttpException(httpException, Arg.Any<string>())
-            .Returns(expectedMappedException);
+        // Note: ErrorMapper is now static, this test pattern will be updated with full integration
 
         // Note: In actual implementation, we would setup the generated client to throw
         // For now, this tests the error mapping pattern
@@ -320,12 +317,11 @@ public class ResourceOperationTests : IDisposable
             "Test error", 
             expectedErrorCode);
         
-        _mockErrorMapper.MapHttpException(httpException, Arg.Any<string>())
-            .Returns(expectedMappedException);
+        // Note: ErrorMapper is now static, this test pattern will be updated with full integration
 
         // This test validates the error mapping pattern
         // Actual HTTP exception throwing would be tested with generated client integration
-        var mappedError = _mockErrorMapper.MapHttpException(httpException, "test-correlation-id");
+        var mappedError = Procore.SDK.Core.ErrorHandling.ErrorMapper.MapHttpException(httpException, "test-correlation-id");
         
         // Assert
         mappedError.Should().Be(expectedMappedException);

@@ -325,7 +325,7 @@ public static class ResourceTestDataBuilder
     public static System.Net.Http.HttpRequestException CreateHttpException(
         System.Net.HttpStatusCode statusCode,
         string message = "Test error",
-        string responseBody = null)
+        string? responseBody = null)
     {
         var exception = new System.Net.Http.HttpRequestException(message);
         exception.Data["StatusCode"] = statusCode;
@@ -459,7 +459,7 @@ public static class ResourceTestDataBuilder
         return Enumerable.Range(1, days).Select(day => new
         {
             Date = DateTime.UtcNow.AddDays(-days + day),
-            UtilizationRate = 70m + (decimal)(Math.Sin(day * 0.2) * 15m), // Simulated trend
+            UtilizationRate = 70m + (decimal)(Math.Sin(day * 0.2) * 15), // Simulated trend
             ResourceCount = 50 + (day % 10),
             ActiveAllocations = 35 + (day % 15)
         });
