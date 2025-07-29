@@ -131,8 +131,8 @@ public class GeneratedClientPerformanceTests : IDisposable
         
         for (int i = 0; i < iterations; i++)
         {
-            var projectBuilder = client.Rest.V10.Projects.Item($"project-{i}");
-            var companyBuilder = client.Rest.V10.Companies.Item($"company-{i}");
+            var projectBuilder = client.Rest.V10.Projects[i * 1000];
+            var companyBuilder = client.Rest.V10.Companies[i * 2000];
             
             // Access properties to ensure they're actually created
             _ = projectBuilder.ToString();
@@ -159,7 +159,7 @@ public class GeneratedClientPerformanceTests : IDisposable
     {
         // Arrange
         var client = new Procore.SDK.ProjectManagement.ProjectManagementClient(_mockRequestAdapter);
-        var projectBuilder = client.Rest.V10.Projects.Item("123");
+        var projectBuilder = client.Rest.V10.Projects[123];
         const int iterations = 500;
 
         // Act - Measure request information generation time
@@ -242,7 +242,7 @@ public class GeneratedClientPerformanceTests : IDisposable
     {
         // Arrange
         var client = new Procore.SDK.ProjectManagement.ProjectManagementClient(_mockRequestAdapter);
-        var projectBuilder = client.Rest.V10.Projects.Item("123");
+        var projectBuilder = client.Rest.V10.Projects[123];
         
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromMilliseconds(100));
@@ -273,7 +273,7 @@ public class GeneratedClientPerformanceTests : IDisposable
     {
         // Arrange
         var client = new Procore.SDK.ProjectManagement.ProjectManagementClient(_mockRequestAdapter);
-        var projectBuilder = client.Rest.V10.Projects.Item("123");
+        var projectBuilder = client.Rest.V10.Projects[123];
         
         // Setup mock to simulate async operation
         _mockRequestAdapter.SendAsync(Arg.Any<RequestInformation>(), Arg.Any<CancellationToken>())
@@ -353,8 +353,8 @@ public class GeneratedClientPerformanceTests : IDisposable
         var builders = new List<object>();
         for (int i = 0; i < iterations; i++)
         {
-            var projectBuilder = client.Rest.V10.Projects.Item($"project-{i}");
-            var companyBuilder = client.Rest.V10.Companies.Item($"company-{i}");
+            var projectBuilder = client.Rest.V10.Projects[i * 1000];
+            var companyBuilder = client.Rest.V10.Companies[i * 2000];
             
             builders.Add(projectBuilder);
             builders.Add(companyBuilder);
@@ -424,7 +424,7 @@ public class GeneratedClientPerformanceTests : IDisposable
         for (int i = 0; i < iterations; i++)
         {
             // Access request builders which may trigger serializer access
-            var projectBuilder = client.Rest.V10.Projects.Item($"project-{i}");
+            var projectBuilder = client.Rest.V10.Projects[i * 1000];
             var requestInfo = projectBuilder.ToGetRequestInformation();
             
             // Access HTTP method to ensure request info is fully created
@@ -471,7 +471,7 @@ public class GeneratedClientPerformanceTests : IDisposable
             {
                 try
                 {
-                    var projectBuilder = client.Rest.V10.Projects.Item($"project-{taskId}");
+                    var projectBuilder = client.Rest.V10.Projects[taskId * 3000];
                     await projectBuilder.GetAsync();
                 }
                 catch (NotImplementedException)
@@ -527,7 +527,7 @@ public class GeneratedClientPerformanceTests : IDisposable
                 {
                     try
                     {
-                        var projectBuilder = client.Rest.V10.Projects.Item($"project-{taskId}");
+                        var projectBuilder = client.Rest.V10.Projects[taskId * 3000];
                         await projectBuilder.GetAsync();
                     }
                     catch (NotImplementedException)

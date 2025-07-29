@@ -76,7 +76,7 @@ public class GeneratedClientFunctionalityTests
     {
         // Arrange
         var client = new Procore.SDK.ProjectManagement.ProjectManagementClient(_mockRequestAdapter);
-        var projectBuilder = client.Rest.V10.Projects.Item("123");
+        var projectBuilder = client.Rest.V10.Projects[123];
 
         // Act - This should not throw and should be callable
         var requestInfo = projectBuilder.ToGetRequestInformation();
@@ -84,7 +84,7 @@ public class GeneratedClientFunctionalityTests
         // Assert
         Assert.NotNull(requestInfo);
         Assert.Equal(Method.GET, requestInfo.HttpMethod);
-        Assert.Contains("/projects/123", requestInfo.URL);
+        Assert.Contains("/projects/123", requestInfo.URI.ToString());
         
         _output.WriteLine("✅ ProjectManagement client builds valid request information");
     }
@@ -97,15 +97,16 @@ public class GeneratedClientFunctionalityTests
     {
         // Arrange
         var client = new Procore.SDK.ProjectManagement.ProjectManagementClient(_mockRequestAdapter);
-        var projectBuilder = client.Rest.V10.Projects.Item("123");
+        var projectBuilder = client.Rest.V10.Projects[123];
 
         // Act - Verify PATCH request can be created
-        var patchRequestInfo = projectBuilder.ToPatchRequestInformation(new {});
+        var patchRequestBody = new Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.PatchRequestBody();
+        var patchRequestInfo = projectBuilder.ToPatchRequestInformation(patchRequestBody);
 
         // Assert
         Assert.NotNull(patchRequestInfo);
         Assert.Equal(Method.PATCH, patchRequestInfo.HttpMethod);
-        Assert.Contains("/projects/123", patchRequestInfo.URL);
+        Assert.Contains("/projects/123", patchRequestInfo.URI.ToString());
         
         _output.WriteLine("✅ ProjectManagement client supports project update operations");
     }
@@ -266,7 +267,7 @@ public class GeneratedClientFunctionalityTests
     {
         // Arrange
         var client = new Procore.SDK.Core.CoreClient(_mockRequestAdapter);
-        var userBuilder = client.Rest.V10.Users.Item("123");
+        var userBuilder = client.Rest.V10.Users[123];
 
         // Act - Check that error types are available in the assembly
         var assembly = typeof(Procore.SDK.Core.CoreClient).Assembly;
@@ -372,7 +373,7 @@ public class GeneratedClientFunctionalityTests
             .Returns(Task.FromResult<object>(new object()));
 
         // Act - Call method with cancellation token
-        var projectBuilder = client.Rest.V10.Projects.Item("123");
+        var projectBuilder = client.Rest.V10.Projects[123];
         
         try
         {
@@ -404,7 +405,7 @@ public class GeneratedClientFunctionalityTests
     {
         // Arrange
         var client = new Procore.SDK.ProjectManagement.ProjectManagementClient(_mockRequestAdapter);
-        var projectBuilder = client.Rest.V10.Projects.Item("123");
+        var projectBuilder = client.Rest.V10.Projects[123];
 
         // Act & Assert - Verify different HTTP methods are supported
         var getMethods = projectBuilder.GetType().GetMethods()
@@ -487,7 +488,7 @@ public class GeneratedClientFunctionalityTests
         var restBuilder = client.Rest;
         var versionBuilder = restBuilder.V10;
         var projectsBuilder = versionBuilder.Projects;
-        var itemBuilder = projectsBuilder.Item("123");
+        var itemBuilder = projectsBuilder[123];
 
         // Assert - Verify each level returns the expected type
         Assert.Equal("RestRequestBuilder", restBuilder.GetType().Name);
@@ -508,8 +509,8 @@ public class GeneratedClientFunctionalityTests
         var client = new Procore.SDK.ProjectManagement.ProjectManagementClient(_mockRequestAdapter);
 
         // Act - Use fluent API to navigate to specific project
-        var projectItemBuilder = client.Rest.V10.Projects.Item("123");
-        var companiesItemBuilder = client.Rest.V10.Companies.Item("456");
+        var projectItemBuilder = client.Rest.V10.Projects[123];
+        var companiesItemBuilder = client.Rest.V10.Companies[456];
 
         // Assert
         Assert.NotNull(projectItemBuilder);

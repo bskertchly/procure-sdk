@@ -22,6 +22,9 @@
     <PackageReference Include="Microsoft.Kiota.Abstractions" />
     <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" />
     <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="System.IO.Abstractions" />
+    <PackageReference Include="System.IO.Abstractions.TestingHelpers" />
+    <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
   <ItemGroup>
