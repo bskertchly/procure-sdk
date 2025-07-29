@@ -200,6 +200,11 @@ public class ServiceUnavailableException : ProcoreCoreException
 /// </summary>
 public class AuthenticationException : ProcoreCoreException
 {
+    /// <summary>
+    /// Initializes a new instance of the AuthenticationException class.
+    /// </summary>
+    /// <param name="message">The error message describing the authentication failure.</param>
+    /// <param name="correlationId">The correlation ID for tracking.</param>
     public AuthenticationException(string message, string? correlationId = null) 
         : base(message, "AUTHENTICATION_FAILED", null, correlationId) { }
 }
@@ -215,6 +220,12 @@ public class ValidationException : ProcoreCoreException
     [JsonPropertyName("validation_errors")]
     public Dictionary<string, string[]>? ValidationErrors { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the ValidationException class.
+    /// </summary>
+    /// <param name="message">The error message describing the validation failure.</param>
+    /// <param name="validationErrors">Field-specific validation errors.</param>
+    /// <param name="correlationId">The correlation ID for tracking.</param>
     public ValidationException(string message, Dictionary<string, string[]>? validationErrors = null, string? correlationId = null) 
         : base(message, "VALIDATION_ERROR", ConvertValidationErrors(validationErrors), correlationId)
     {
@@ -239,6 +250,12 @@ public class ValidationException : ProcoreCoreException
 /// </summary>
 public class NetworkException : ProcoreCoreException
 {
+    /// <summary>
+    /// Initializes a new instance of the NetworkException class.
+    /// </summary>
+    /// <param name="message">The error message describing the network failure.</param>
+    /// <param name="innerException">The underlying exception that caused this network error.</param>
+    /// <param name="correlationId">The correlation ID for tracking.</param>
     public NetworkException(string message, Exception innerException, string? correlationId = null) 
         : base(message, "NETWORK_ERROR", new Dictionary<string, object>
         {
