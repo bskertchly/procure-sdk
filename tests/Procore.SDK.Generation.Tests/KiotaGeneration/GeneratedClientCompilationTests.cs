@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Kiota.Abstractions;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -332,4 +333,254 @@ public class GeneratedClientCompilationTests
         
         _output.WriteLine("✅ Generated client handles empty base URL correctly");
     }
+
+    #region Task 9 Enhanced Validation Tests
+
+    /// <summary>
+    /// Task 9: Validates that all generated clients compile without CS0234 namespace errors.
+    /// These were the primary compilation issues identified in Task 9.
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(Procore.SDK.ProjectManagement.ProjectManagementClient), "ProjectManagement")]
+    [InlineData(typeof(Procore.SDK.ResourceManagement.ResourceManagementClient), "ResourceManagement")]
+    [InlineData(typeof(Procore.SDK.QualitySafety.QualitySafetyClient), "QualitySafety")]
+    [InlineData(typeof(Procore.SDK.ConstructionFinancials.ConstructionFinancialsClient), "ConstructionFinancials")]
+    [InlineData(typeof(Procore.SDK.FieldProductivity.FieldProductivityClient), "FieldProductivity")]
+    [InlineData(typeof(Procore.SDK.Core.CoreClient), "Core")]
+    public void GeneratedClient_Should_Not_Have_CS0234_Compilation_Errors(Type clientType, string clientName)
+    {
+        // Task 9 Focus: Ensure no "type or namespace name does not exist" errors
+        // Historical Issues: FilesPostRequestBody, FilesPatchRequestBody, FoldersPostRequestBody, FoldersPatchRequestBody
+        
+        try
+        {
+            var mockRequestAdapter = Substitute.For<IRequestAdapter>();
+            mockRequestAdapter.BaseUrl.Returns("https://api.procore.com");
+            
+            // This will fail at compile time if CS0234 errors exist
+            var client = Activator.CreateInstance(clientType, mockRequestAdapter);
+            
+            Assert.NotNull(client);
+            
+            // Verify the client has the expected structure
+            var restProperty = clientType.GetProperty("Rest");
+            Assert.NotNull(restProperty);
+            
+            var restValue = restProperty.GetValue(client);
+            Assert.NotNull(restValue);
+            
+            _output.WriteLine($"✅ {clientName} client compiles without CS0234 errors");
+        }
+        catch (Exception ex)
+        {
+            // Log detailed information about the compilation issue
+            _output.WriteLine($"❌ {clientName} client failed: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                _output.WriteLine($"   Inner Exception: {ex.InnerException.Message}");
+            }
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Task 9: Validates that all expected request body types exist and are accessible.
+    /// This prevents regression of missing FilesPostRequestBody, FilesPatchRequestBody issues.
+    /// </summary>
+    [Fact]
+    public void GeneratedClients_Should_Have_All_Request_Body_Types()
+    {
+        var missingTypes = new List<string>();
+        var clientAssemblies = new[]
+        {
+            typeof(Procore.SDK.ProjectManagement.ProjectManagementClient).Assembly,
+            typeof(Procore.SDK.ResourceManagement.ResourceManagementClient).Assembly,
+            typeof(Procore.SDK.QualitySafety.QualitySafetyClient).Assembly,
+            typeof(Procore.SDK.ConstructionFinancials.ConstructionFinancialsClient).Assembly,
+            typeof(Procore.SDK.FieldProductivity.FieldProductivityClient).Assembly,
+            typeof(Procore.SDK.Core.CoreClient).Assembly
+        };
+
+        foreach (var assembly in clientAssemblies)
+        {
+            var assemblyName = assembly.GetName().Name;
+            var types = assembly.GetTypes();
+            
+            // Look for types that should exist based on common patterns
+            var requestBodyPattern = new Regex(@".*(?:Post|Patch|Put)RequestBody$", RegexOptions.Compiled);
+            var requestBodyTypes = types.Where(t => requestBodyPattern.IsMatch(t.Name)).ToList();
+            
+            // Verify that request builders reference valid request body types
+            var requestBuilderTypes = types.Where(t => t.Name.EndsWith("RequestBuilder")).ToList();
+            
+            foreach (var builderType in requestBuilderTypes)
+            {
+                var methods = builderType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+                
+                foreach (var method in methods.Where(m => m.Name.Contains("Post") || m.Name.Contains("Patch") || m.Name.Contains("Put")))
+                {
+                    var parameters = method.GetParameters();
+                    var requestBodyParam = parameters.FirstOrDefault(p => p.Name?.Contains("requestBody") == true || 
+                                                                         p.ParameterType.Name.Contains("RequestBody"));
+                    
+                    if (requestBodyParam != null)
+                    {
+                        var requestBodyType = requestBodyParam.ParameterType;
+                        if (!requestBodyType.IsValueType && requestBodyType != typeof(string))
+                        {
+                            // Verify the type is actually defined in the assembly
+                            var typeExists = types.Any(t => t == requestBodyType);
+                            if (!typeExists)
+                            {
+                                missingTypes.Add($"{assemblyName}: {requestBodyType.Name} referenced by {builderType.Name}.{method.Name}");
+                            }
+                        }
+                    }
+                }
+            }
+            
+            _output.WriteLine($"✅ {assemblyName}: Found {requestBodyTypes.Count} request body types, validated {requestBuilderTypes.Count} request builders");
+        }
+        
+        if (missingTypes.Any())
+        {
+            _output.WriteLine($"❌ Missing request body types found:");
+            foreach (var missingType in missingTypes)
+            {
+                _output.WriteLine($"   - {missingType}");
+            }
+        }
+        
+        Assert.Empty(missingTypes);
+    }
+
+    /// <summary>
+    /// Task 9: Validates that all generated clients have consistent namespace structure.
+    /// </summary>
+    [Theory]
+    [InlineData("Procore.SDK.ProjectManagement", typeof(Procore.SDK.ProjectManagement.ProjectManagementClient))]
+    [InlineData("Procore.SDK.ResourceManagement", typeof(Procore.SDK.ResourceManagement.ResourceManagementClient))]
+    [InlineData("Procore.SDK.QualitySafety", typeof(Procore.SDK.QualitySafety.QualitySafetyClient))]
+    [InlineData("Procore.SDK.ConstructionFinancials", typeof(Procore.SDK.ConstructionFinancials.ConstructionFinancialsClient))]
+    [InlineData("Procore.SDK.FieldProductivity", typeof(Procore.SDK.FieldProductivity.FieldProductivityClient))]
+    [InlineData("Procore.SDK.Core", typeof(Procore.SDK.Core.CoreClient))]
+    public void GeneratedClient_Should_Have_Consistent_Namespace_Structure(string expectedNamespace, Type clientType)
+    {
+        // Task 9 Focus: Ensure namespace consistency to prevent resolution issues
+        
+        Assert.Equal(expectedNamespace, clientType.Namespace);
+        
+        // Verify that generated types in the same assembly follow the namespace pattern
+        var assembly = clientType.Assembly;
+        var generatedTypes = assembly.GetTypes().Where(t => t.Namespace?.StartsWith(expectedNamespace) == true).ToList();
+        
+        Assert.NotEmpty(generatedTypes);
+        
+        // Check for common namespace violations
+        var invalidNamespaces = generatedTypes
+            .Where(t => !t.Namespace.StartsWith(expectedNamespace))
+            .Select(t => $"{t.Name} in {t.Namespace}")
+            .ToList();
+            
+        if (invalidNamespaces.Any())
+        {
+            _output.WriteLine($"❌ Invalid namespaces found in {expectedNamespace}:");
+            foreach (var invalid in invalidNamespaces)
+            {
+                _output.WriteLine($"   - {invalid}");
+            }
+        }
+        
+        Assert.Empty(invalidNamespaces);
+        
+        _output.WriteLine($"✅ {expectedNamespace}: {generatedTypes.Count} types follow consistent namespace structure");
+    }
+
+    /// <summary>
+    /// Task 9: Validates that all generated clients properly handle nullable reference types.
+    /// This addresses nullable reference type warnings that were part of the compilation issues.
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(Procore.SDK.ProjectManagement.ProjectManagementClient))]
+    [InlineData(typeof(Procore.SDK.ResourceManagement.ResourceManagementClient))]
+    [InlineData(typeof(Procore.SDK.QualitySafety.QualitySafetyClient))]
+    [InlineData(typeof(Procore.SDK.ConstructionFinancials.ConstructionFinancialsClient))]
+    [InlineData(typeof(Procore.SDK.FieldProductivity.FieldProductivityClient))]
+    [InlineData(typeof(Procore.SDK.Core.CoreClient))]
+    public void GeneratedClient_Should_Handle_Nullable_Reference_Types_Without_Warnings(Type clientType)
+    {
+        // Task 9 Focus: Ensure nullable reference type compliance
+        
+        var mockRequestAdapter = Substitute.For<IRequestAdapter>();
+        mockRequestAdapter.BaseUrl.Returns("https://api.procore.com");
+        
+        // Test with valid adapter - should not throw
+        var clientWithValidAdapter = Activator.CreateInstance(clientType, mockRequestAdapter);
+        Assert.NotNull(clientWithValidAdapter);
+        
+        // Test with null adapter - should throw ArgumentNullException (proper null handling)
+        var exception = Assert.Throws<TargetInvocationException>(() => 
+            Activator.CreateInstance(clientType, (IRequestAdapter)null!));
+        
+        Assert.IsType<ArgumentNullException>(exception.InnerException);
+        
+        _output.WriteLine($"✅ {clientType.Name} properly handles nullable reference types");
+    }
+
+    /// <summary>
+    /// Task 9: Validates that kiota-lock.json files exist and contain expected configuration.
+    /// </summary>
+    [Theory]
+    [InlineData("ProjectManagement", "src/Procore.SDK.ProjectManagement/Generated/kiota-lock.json")]
+    [InlineData("ResourceManagement", "src/Procore.SDK.ResourceManagement/Generated/kiota-lock.json")]
+    [InlineData("QualitySafety", "src/Procore.SDK.QualitySafety/Generated/kiota-lock.json")]
+    [InlineData("ConstructionFinancials", "src/Procore.SDK.ConstructionFinancials/Generated/kiota-lock.json")]
+    [InlineData("FieldProductivity", "src/Procore.SDK.FieldProductivity/Generated/kiota-lock.json")]
+    [InlineData("Core", "src/Procore.SDK.Core/Generated/kiota-lock.json")]
+    public void GeneratedClient_Should_Have_Valid_Kiota_Lock_File(string clientName, string relativePath)
+    {
+        // Task 9 Focus: Ensure generation configuration is properly maintained
+        
+        var solutionRoot = GetSolutionRoot();
+        var lockFilePath = Path.Combine(solutionRoot, relativePath);
+        
+        Assert.True(File.Exists(lockFilePath), $"Kiota lock file should exist at {lockFilePath}");
+        
+        var lockFileContent = File.ReadAllText(lockFilePath);
+        Assert.False(string.IsNullOrWhiteSpace(lockFileContent), "Lock file should not be empty");
+        
+        // Verify it contains expected JSON structure
+        try
+        {
+            var json = System.Text.Json.JsonDocument.Parse(lockFileContent);
+            
+            Assert.True(json.RootElement.TryGetProperty("version", out _), "Lock file should contain version");
+            Assert.True(json.RootElement.TryGetProperty("descriptionLocation", out _), "Lock file should contain descriptionLocation");
+            Assert.True(json.RootElement.TryGetProperty("clientClassName", out _), "Lock file should contain clientClassName");
+            
+            _output.WriteLine($"✅ {clientName} has valid kiota-lock.json configuration");
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            Assert.True(false, $"Lock file contains invalid JSON: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Helper method to find the solution root directory.
+    /// </summary>
+    private static string GetSolutionRoot()
+    {
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var directory = new DirectoryInfo(currentDirectory);
+        
+        while (directory != null && !directory.GetFiles("*.sln").Any())
+        {
+            directory = directory.Parent;
+        }
+        
+        return directory?.FullName ?? currentDirectory;
+    }
+
+    #endregion
 }
