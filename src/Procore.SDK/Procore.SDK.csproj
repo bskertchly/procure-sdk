@@ -2,7 +2,10 @@
 
   <PropertyGroup>
     <PackageId>Procore.SDK</PackageId>
+    <Title>Procore SDK for .NET</Title>
     <Description>Unified .NET SDK for Procore's construction management platform. Provides access to all Procore API resources through strongly-typed clients with automatic authentication, error handling, and retry logic.</Description>
+    <PackageTags>$(PackageTags);meta-package;unified</PackageTags>
+    <PackageReleaseNotes>Initial release of the unified Procore SDK for .NET with Core client functionality, OAuth 2.0 PKCE authentication, and comprehensive error handling.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,12 +24,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Procore.SDK.Shared\Procore.SDK.Shared.csproj" />
     <ProjectReference Include="..\Procore.SDK.Core\Procore.SDK.Core.csproj" />
-    <!-- Temporarily disabled due to compilation issues with generated Kiota clients -->
-    <!-- <ProjectReference Include="..\Procore.SDK.ProjectManagement\Procore.SDK.ProjectManagement.csproj" /> -->
-    <!-- <ProjectReference Include="..\Procore.SDK.QualitySafety\Procore.SDK.QualitySafety.csproj" /> -->
-    <!-- <ProjectReference Include="..\Procore.SDK.ConstructionFinancials\Procore.SDK.ConstructionFinancials.csproj" /> -->
-    <!-- <ProjectReference Include="..\Procore.SDK.FieldProductivity\Procore.SDK.FieldProductivity.csproj" /> -->
-    <!-- <ProjectReference Include="..\Procore.SDK.ResourceManagement\Procore.SDK.ResourceManagement.csproj" /> -->
+    <ProjectReference Include="..\Procore.SDK.ProjectManagement\Procore.SDK.ProjectManagement.csproj" />
+    <ProjectReference Include="..\Procore.SDK.QualitySafety\Procore.SDK.QualitySafety.csproj" />
+    <ProjectReference Include="..\Procore.SDK.ConstructionFinancials\Procore.SDK.ConstructionFinancials.csproj" />
+    <ProjectReference Include="..\Procore.SDK.FieldProductivity\Procore.SDK.FieldProductivity.csproj" />
+    <ProjectReference Include="..\Procore.SDK.ResourceManagement\Procore.SDK.ResourceManagement.csproj" />
   </ItemGroup>
 
 </Project>
