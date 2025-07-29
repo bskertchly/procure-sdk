@@ -67,3 +67,91 @@ public enum TransactionType
     Transfer,
     Accrual
 }
+
+// Invoice Configuration Models
+public class InvoiceConfiguration
+{
+    public int Id { get; set; }
+    public int CompanyId { get; set; }
+    public int ProjectId { get; set; }
+    public int ContractId { get; set; }
+    public bool MoveMaterialsToPreviousWorkCompleted { get; set; }
+    public bool SeparateBillingForStoredMaterials { get; set; }
+    public string StoredMaterialsBillingMethod { get; set; } = string.Empty;
+    public bool SlidingScaleRetainageEnabled { get; set; }
+    public RetainageRuleSet? RetainageRuleSet { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class RetainageRuleSet
+{
+    public int Id { get; set; }
+    public List<RetainageRule> Rules { get; set; } = new();
+    public bool IsActive { get; set; }
+}
+
+public class RetainageRule
+{
+    public int Id { get; set; }
+    public string RuleType { get; set; } = string.Empty;
+    public decimal Percentage { get; set; }
+    public decimal ThresholdAmount { get; set; }
+    public bool IsActive { get; set; }
+}
+
+// Async Job Models
+public class AsyncJob
+{
+    public string Uuid { get; set; } = string.Empty;
+    public int CompanyId { get; set; }
+    public AsyncJobStatus Status { get; set; }
+    public string JobType { get; set; } = string.Empty;
+    public AsyncJobResult? Result { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public string? ErrorMessage { get; set; }
+    public int? ProgressPercentage { get; set; }
+}
+
+public enum AsyncJobStatus
+{
+    Pending,
+    InProgress,
+    Completed,
+    Failed,
+    Cancelled
+}
+
+public class AsyncJobResult
+{
+    public int TotalRecords { get; set; }
+    public int ProcessedRecords { get; set; }
+    public int FailedRecords { get; set; }
+    public List<string> Errors { get; set; } = new();
+    public Dictionary<string, object> Data { get; set; } = new();
+}
+
+// Compliance Document Models
+public class ComplianceDocument
+{
+    public int Id { get; set; }
+    public int InvoiceId { get; set; }
+    public int ProjectId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string DocumentType { get; set; } = string.Empty;
+    public List<ComplianceDocumentFile> Files { get; set; } = new();
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class ComplianceDocumentFile
+{
+    public int Id { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string DownloadUrl { get; set; } = string.Empty;
+    public DateTime UploadedAt { get; set; }
+}
