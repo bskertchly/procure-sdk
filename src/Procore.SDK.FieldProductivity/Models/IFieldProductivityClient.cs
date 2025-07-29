@@ -17,10 +17,18 @@ public interface IFieldProductivityClient : IDisposable
     /// </summary>
     object RawClient { get; }
 
-    // Productivity Reporting
-    Task<IEnumerable<ProductivityReport>> GetProductivityReportsAsync(int companyId, int projectId, CancellationToken cancellationToken = default);
+    // Productivity Reporting (Core Timecard Operations)
+    Task<IEnumerable<ProductivityReport>> GetProductivityReportsAsync(int companyId, int projectId = 0, CancellationToken cancellationToken = default);
+    Task<IEnumerable<ProductivityReport>> GetTimecardEntriesAsync(int companyId, IEnumerable<int> timecardEntryIds, CancellationToken cancellationToken = default);
+    Task<ProductivityReport> GetTimecardEntryAsync(int companyId, int timecardEntryId, CancellationToken cancellationToken = default);
+    Task<ProductivityReport> UpdateTimecardEntryAsync(int companyId, int timecardEntryId, UpdateProductivityReportRequest request, CancellationToken cancellationToken = default);
+    Task<ProductivityReport> DeleteTimecardEntryAsync(int companyId, int timecardEntryId, CancellationToken cancellationToken = default);
     Task<ProductivityReport> GetProductivityReportAsync(int companyId, int projectId, int reportId, CancellationToken cancellationToken = default);
     Task<ProductivityReport> CreateProductivityReportAsync(int companyId, int projectId, CreateProductivityReportRequest request, CancellationToken cancellationToken = default);
+
+    // Bulk Operations
+    Task<IEnumerable<BulkOperationResult<ProductivityReport>>> BulkUpdateTimecardEntriesAsync(int companyId, IEnumerable<TimecardEntryUpdate> updates, CancellationToken cancellationToken = default);
+    Task<IEnumerable<BulkOperationResult<ProductivityReport>>> BulkDeleteTimecardEntriesAsync(int companyId, IEnumerable<int> timecardEntryIds, CancellationToken cancellationToken = default);
 
     // Field Activity Management
     Task<IEnumerable<FieldActivity>> GetFieldActivitiesAsync(int companyId, int projectId, CancellationToken cancellationToken = default);
@@ -35,9 +43,11 @@ public interface IFieldProductivityClient : IDisposable
     Task<IEnumerable<PerformanceMetric>> GetPerformanceMetricsAsync(int companyId, int projectId, CancellationToken cancellationToken = default);
     Task<PerformanceMetric> RecordPerformanceMetricAsync(int companyId, int projectId, string metricName, decimal value, string unit, CancellationToken cancellationToken = default);
 
-    // Analytics and Reporting
+    // Analytics and Reporting  
     Task<decimal> GetAverageProductivityRateAsync(int companyId, int projectId, string activityType, CancellationToken cancellationToken = default);
+    Task<decimal> GetAverageProductivityRateAsync(int companyId, int projectId, string activityType, IEnumerable<int>? timecardEntryIds = null, CancellationToken cancellationToken = default);
     Task<Dictionary<string, decimal>> GetProductivitySummaryAsync(int companyId, int projectId, CancellationToken cancellationToken = default);
+    Task<Dictionary<string, decimal>> GetProductivitySummaryAsync(int companyId, int projectId, IEnumerable<int>? timecardEntryIds = null, CancellationToken cancellationToken = default);
     Task<IEnumerable<ResourceUtilization>> GetUnderUtilizedResourcesAsync(int companyId, int projectId, decimal threshold, CancellationToken cancellationToken = default);
 
     // Pagination Support

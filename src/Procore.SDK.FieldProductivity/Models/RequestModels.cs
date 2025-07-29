@@ -17,6 +17,16 @@ public class CreateProductivityReportRequest
     public string Weather { get; set; } = string.Empty;
 }
 
+public class UpdateProductivityReportRequest
+{
+    public DateTime? ReportDate { get; set; }
+    public string? ActivityType { get; set; }
+    public decimal? UnitsCompleted { get; set; }
+    public decimal? HoursWorked { get; set; }
+    public int? CrewSize { get; set; }
+    public string? Weather { get; set; }
+}
+
 // Field Activity Request Models
 public class UpdateFieldActivityRequest
 {
@@ -34,4 +44,19 @@ public class RecordResourceUtilizationRequest
     public decimal UsedHours { get; set; }
     public decimal AvailableHours { get; set; }
     public DateTime ReportDate { get; set; }
+}
+
+// Bulk Operation Models
+public class TimecardEntryUpdate
+{
+    public int TimecardEntryId { get; set; }
+    public UpdateProductivityReportRequest UpdateRequest { get; set; } = new();
+}
+
+public class BulkOperationResult<T>
+{
+    public bool IsSuccess { get; set; }
+    public T? Data { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string Id { get; set; } = string.Empty;
 }

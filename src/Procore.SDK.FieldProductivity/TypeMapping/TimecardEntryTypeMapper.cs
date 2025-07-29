@@ -15,6 +15,7 @@ public class TimecardEntryTypeMapper : BaseTypeMapper<ProductivityReport, Genera
 {
     /// <summary>
     /// Maps from generated timecard entry response to wrapper ProductivityReport domain model.
+    /// Enhanced with comprehensive field mapping and validation.
     /// </summary>
     /// <param name="source">The generated timecard entry response to map from</param>
     /// <returns>The mapped ProductivityReport domain model</returns>
@@ -22,23 +23,29 @@ public class TimecardEntryTypeMapper : BaseTypeMapper<ProductivityReport, Genera
     {
         try
         {
-            // Extract basic information from the timecard entry
-            var hoursWorked = ExtractHoursWorked(source.AdditionalData);
-            var unitsCompleted = ExtractUnitsCompleted(source.AdditionalData);
+            // Extract comprehensive information from the timecard entry using both structured and additional data
+            var hoursWorked = ExtractDecimalFromSource(source, "hours", "hours_worked", "total_hours", "duration") ?? 
+                             (decimal.TryParse(source.Hours, out var parsedHours) ? parsedHours : 8.0m);
+            
+            var unitsCompleted = ExtractDecimalFromSource(source, "units", "units_completed", "quantity", "amount") ?? 100.0m;
+            
+            var projectId = ExtractProjectId(source);
+            var activityType = ExtractActivityType(source);
+            var crewSize = ExtractCrewSize(source);
             
             return new ProductivityReport
             {
-                Id = ExtractIdFromAdditionalData(source.AdditionalData),
-                ProjectId = ExtractProjectIdFromAdditionalData(source.AdditionalData),
-                ReportDate = ExtractDateFromAdditionalData(source.AdditionalData, "date") ?? DateTime.UtcNow,
-                ActivityType = ExtractStringFromAdditionalData(source.AdditionalData, "activity_type") ?? "Field Work",
+                Id = ExtractId(source),
+                ProjectId = projectId,
+                ReportDate = ConvertDateToDateTime(source.Date) ?? source.CreatedAt?.DateTime ?? DateTime.UtcNow,
+                ActivityType = activityType,
                 UnitsCompleted = unitsCompleted,
                 HoursWorked = hoursWorked,
                 ProductivityRate = hoursWorked > 0 ? unitsCompleted / hoursWorked : 0,
-                CrewSize = ExtractIntFromAdditionalData(source.AdditionalData, "crew_size") ?? 1,
-                Weather = ExtractStringFromAdditionalData(source.AdditionalData, "weather") ?? "Unknown",
-                CreatedAt = ExtractDateFromAdditionalData(source.AdditionalData, "created_at") ?? DateTime.UtcNow,
-                UpdatedAt = ExtractDateFromAdditionalData(source.AdditionalData, "updated_at") ?? DateTime.UtcNow
+                CrewSize = crewSize,
+                Weather = ExtractWeather(source),
+                CreatedAt = source.CreatedAt?.DateTime ?? DateTime.UtcNow,
+                UpdatedAt = source.UpdatedAt?.DateTime ?? DateTime.UtcNow
             };
         }
         catch (Exception ex)
@@ -141,43 +148,98 @@ public class TimecardEntryTypeMapper : BaseTypeMapper<ProductivityReport, Genera
     }
 
     /// <summary>
-    /// Attempts to extract hours worked from additional data if available.
+    /// Extracts ID from timecard entry response with fallback strategies.
     /// </summary>
-    private static decimal ExtractHoursWorked(IDictionary<string, object>? additionalData)
+    private static int ExtractId(GeneratedTimecardEntryResponse source)
     {
-        if (additionalData == null)
-            return 0;
-
-        foreach (var key in new[] { "hours", "hours_worked", "total_hours", "duration" })
-        {
-            if (additionalData.TryGetValue(key, out var value) && value != null)
-            {
-                if (decimal.TryParse(value.ToString(), out var hours))
-                    return hours;
-            }
-        }
-
-        return 8.0m; // Default to 8 hours
+        if (source.Id.HasValue)
+            return source.Id.Value;
+            
+        return ExtractIntFromAdditionalData(source.AdditionalData, "id") ?? 0;
     }
-
+    
     /// <summary>
-    /// Attempts to extract units completed from additional data if available.
+    /// Extracts project ID from timecard entry with multiple fallback strategies.
     /// </summary>
-    private static decimal ExtractUnitsCompleted(IDictionary<string, object>? additionalData)
+    private static int ExtractProjectId(GeneratedTimecardEntryResponse source)
     {
-        if (additionalData == null)
-            return 0;
-
-        foreach (var key in new[] { "units", "units_completed", "quantity", "amount" })
+        // Try project object first
+        if (source.Project?.Id.HasValue == true)
+            return source.Project.Id.Value;
+            
+        // Sub job doesn't directly have project reference in this API version
+            
+        // Fallback to additional data
+        return ExtractProjectIdFromAdditionalData(source.AdditionalData);
+    }
+    
+    /// <summary>
+    /// Extracts activity type from cost code or timecard time type.
+    /// </summary>
+    private static string ExtractActivityType(GeneratedTimecardEntryResponse source)
+    {
+        // Try cost code name first
+        if (!string.IsNullOrEmpty(source.CostCode?.Name))
+            return source.CostCode.Name;
+            
+        // Try timecard time type
+        if (!string.IsNullOrEmpty(source.TimecardTimeType?.TimeType))
+            return source.TimecardTimeType.TimeType;
+            
+        // Try description
+        if (!string.IsNullOrEmpty(source.Description))
+            return source.Description;
+            
+        return "Field Work";
+    }
+    
+    /// <summary>
+    /// Extracts crew size from crew information or defaults.
+    /// </summary>
+    private static int ExtractCrewSize(GeneratedTimecardEntryResponse source)
+    {
+        // Try crew size from crew object
+        if (source.Crew?.Id.HasValue == true)
+            return 1; // At least one person if crew is specified
+            
+        return ExtractIntFromAdditionalData(source.AdditionalData, "crew_size") ?? 1;
+    }
+    
+    /// <summary>
+    /// Extracts weather information from custom fields or additional data.
+    /// </summary>
+    private static string ExtractWeather(GeneratedTimecardEntryResponse source)
+    {
+        // Try custom fields for weather information
+        if (source.CustomFields?.AdditionalData != null)
         {
-            if (additionalData.TryGetValue(key, out var value) && value != null)
+            var weather = ExtractStringFromAdditionalData(source.CustomFields.AdditionalData, "weather");
+            if (!string.IsNullOrEmpty(weather))
+                return weather;
+        }
+        
+        // Fallback to additional data
+        return ExtractStringFromAdditionalData(source.AdditionalData, "weather") ?? "Unknown";
+    }
+    
+    /// <summary>
+    /// Extracts decimal values from timecard entry with multiple key attempts.
+    /// </summary>
+    private static decimal? ExtractDecimalFromSource(GeneratedTimecardEntryResponse source, params string[] keys)
+    {
+        if (source.AdditionalData == null)
+            return null;
+            
+        foreach (var key in keys)
+        {
+            if (source.AdditionalData.TryGetValue(key, out var value) && value != null)
             {
-                if (decimal.TryParse(value.ToString(), out var units))
-                    return units;
+                if (decimal.TryParse(value.ToString(), out var result))
+                    return result;
             }
         }
-
-        return 100.0m; // Default to 100 units
+        
+        return null;
     }
 
     /// <summary>
@@ -228,5 +290,15 @@ public class TimecardEntryTypeMapper : BaseTypeMapper<ProductivityReport, Genera
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Converts a Kiota Date to DateTime.
+    /// </summary>
+    private static DateTime? ConvertDateToDateTime(Microsoft.Kiota.Abstractions.Date? date)
+    {
+        if (!date.HasValue) return null;
+        var dateValue = date.Value;
+        return new DateTime(dateValue.Year, dateValue.Month, dateValue.Day);
     }
 }
