@@ -159,6 +159,99 @@ public static class TypeMappingExtensions
 
         return null;
     }
+
+    /// <summary>
+    /// Maps a collection of generated types to a list of wrapper domain models with error handling.
+    /// </summary>
+    /// <typeparam name="TWrapper">The wrapper domain model type</typeparam>
+    /// <typeparam name="TGenerated">The generated Kiota client type</typeparam>
+    /// <param name="source">The collection of generated types to map from</param>
+    /// <param name="serviceProvider">Service provider to resolve the mapper registry</param>
+    /// <returns>The mapped list of wrapper domain models, excluding failed mappings</returns>
+    public static List<TWrapper> ToWrapperList<TWrapper, TGenerated>(this IEnumerable<TGenerated> source, IServiceProvider serviceProvider)
+        where TWrapper : class, new()
+        where TGenerated : class, new()
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        var result = new List<TWrapper>();
+        var registry = serviceProvider.GetRequiredService<ITypeMapperRegistry>();
+        var mapper = registry.GetMapper<TWrapper, TGenerated>();
+
+        foreach (var item in source)
+        {
+            if (mapper.TryMapToWrapper(item, out var wrapped) && wrapped != null)
+            {
+                result.Add(wrapped);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Maps a collection of wrapper domain models to a list of generated types with error handling.
+    /// </summary>
+    /// <typeparam name="TWrapper">The wrapper domain model type</typeparam>
+    /// <typeparam name="TGenerated">The generated Kiota client type</typeparam>
+    /// <param name="source">The collection of wrapper domain models to map from</param>
+    /// <param name="serviceProvider">Service provider to resolve the mapper registry</param>
+    /// <returns>The mapped list of generated types, excluding failed mappings</returns>
+    public static List<TGenerated> ToGeneratedList<TWrapper, TGenerated>(this IEnumerable<TWrapper> source, IServiceProvider serviceProvider)
+        where TWrapper : class, new()
+        where TGenerated : class, new()
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        var result = new List<TGenerated>();
+        var registry = serviceProvider.GetRequiredService<ITypeMapperRegistry>();
+        var mapper = registry.GetMapper<TWrapper, TGenerated>();
+
+        foreach (var item in source)
+        {
+            if (mapper.TryMapToGenerated(item, out var generated) && generated != null)
+            {
+                result.Add(generated);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Maps a dictionary of generated types to wrapper domain models.
+    /// </summary>
+    /// <typeparam name="TWrapper">The wrapper domain model type</typeparam>
+    /// <typeparam name="TGenerated">The generated Kiota client type</typeparam>
+    /// <param name="source">The dictionary of generated types to map from</param>
+    /// <param name="serviceProvider">Service provider to resolve the mapper registry</param>
+    /// <returns>The mapped dictionary of wrapper domain models</returns>
+    public static Dictionary<TKey, TWrapper> ToWrapperDictionary<TKey, TWrapper, TGenerated>(
+        this IDictionary<TKey, TGenerated> source, 
+        IServiceProvider serviceProvider)
+        where TKey : notnull
+        where TWrapper : class, new()
+        where TGenerated : class, new()
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        var result = new Dictionary<TKey, TWrapper>();
+        var registry = serviceProvider.GetRequiredService<ITypeMapperRegistry>();
+        var mapper = registry.GetMapper<TWrapper, TGenerated>();
+
+        foreach (var kvp in source)
+        {
+            if (mapper.TryMapToWrapper(kvp.Value, out var wrapped) && wrapped != null)
+            {
+                result[kvp.Key] = wrapped;
+            }
+        }
+
+        return result;
+    }
 }
 
 /// <summary>
