@@ -2,7 +2,10 @@
 
   <PropertyGroup>
     <PackageId>Procore.SDK.ProjectManagement</PackageId>
-    <Description>Procore SDK Project Management client for projects, workflows, tasks, and project assignments. Provides strongly-typed access to Procore's project management API resources.</Description>
+    <Title>Procore SDK Project Management Client</Title>
+    <Description>Procore SDK Project Management client for projects, workflows, tasks, and project assignments. Provides strongly-typed access to Procore's project management API resources with advanced querying and bulk operations.</Description>
+    <PackageTags>$(PackageTags);projects;project-management;workflows;tasks;assignments</PackageTags>
+    <PackageReleaseNotes>Project Management client with Project APIs, workflow management, task tracking, and project assignment capabilities.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,20 +1,34 @@
 <Project>
   <PropertyGroup>
-    <!-- Target Framework -->
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- Multi-targeting configuration -->
+    <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+    <!-- Use single target for sample projects -->
+    <TargetFramework Condition="$(MSBuildProjectName.Contains('Sample'))">net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     
+    <!-- Semantic Versioning -->
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionSuffix Condition="'$(Configuration)' == 'Debug'">dev</VersionSuffix>
+    <Version Condition="'$(VersionSuffix)' != ''">$(VersionPrefix)-$(VersionSuffix)</Version>
+    <Version Condition="'$(VersionSuffix)' == ''">$(VersionPrefix)</Version>
+    <AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
+    <FileVersion>$(VersionPrefix)</FileVersion>
+    
     <!-- Package Metadata -->
-    <Company>Procore SDK Contributors</Company>
-    <Authors>Procore SDK Contributors</Authors>
-    <Copyright>Copyright © 2024 Procore SDK Contributors</Copyright>
+    <Company>Bryan Skertchly</Company>
+    <Authors>Bryan Skertchly</Authors>
+    <Product>Procore SDK for .NET</Product>
+    <Copyright>Copyright © 2025 Bryan Skertchly</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/procore/procore-sdk-dotnet</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/procore/procore-sdk-dotnet</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/bskertchly/procore-sdk</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/bskertchly/procore-sdk</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>procore;construction;api;sdk;client</PackageTags>
+    <PackageTags>procore;construction;api;sdk;client;dotnet;csharp</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     
     <!-- Source linking -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -26,7 +40,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
-    <!-- Removed WarningsNotAsErrors to show all warnings -->
+    <!-- Suppress specific warnings that are acceptable for generated code -->
+    <WarningsNotAsErrors>CS1591;SA0001;SA1633;SA1200;SA1516;SA1309;SA1101;SA1027;SA1124;SA1413;CA1002;CA1056;CA1819;CA1062</WarningsNotAsErrors>
     
     <!-- Code analysis -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
@@ -39,8 +54,16 @@
     <!-- Security analysis -->
     <EnableSecurityCodeScan>true</EnableSecurityCodeScan>
     
-    <!-- Style enforcement -->
-    <TreatStyleCopWarningsAsErrors>true</TreatStyleCopWarningsAsErrors>
+    <!-- Style enforcement - Reduced to warnings for generated code -->
+    <TreatStyleCopWarningsAsErrors>false</TreatStyleCopWarningsAsErrors>
+    
+    <!-- Deterministic builds for reproducible packages -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    
+    <!-- Enhanced package properties -->
+    <PackageValidationBaselineVersion Condition="'$(PackageValidationBaselineVersion)' == ''">1.0.0</PackageValidationBaselineVersion>
+    <GenerateCompatibilitySuppressionFile>true</GenerateCompatibilitySuppressionFile>
   </PropertyGroup>
 
   <!-- Test project specific properties -->
@@ -66,8 +89,17 @@
     <ThresholdStat>minimum</ThresholdStat>
   </PropertyGroup>
 
+  <!-- Package content files -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)assets\icon.png" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)assets\icon.png')" />
+    <None Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+    
+    <!-- Package validation tools -->
+    <PackageReference Include="Microsoft.DotNet.PackageValidation" PrivateAssets="All" Condition="'$(IsPackable)' == 'true'" />
     
     <!-- Analyzers for all projects -->
     <PackageReference Include="SecurityCodeScan.VS2019" PrivateAssets="All" />

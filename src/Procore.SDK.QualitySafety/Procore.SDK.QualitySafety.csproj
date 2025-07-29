@@ -2,7 +2,10 @@
 
   <PropertyGroup>
     <PackageId>Procore.SDK.QualitySafety</PackageId>
-    <Description>Procore SDK Quality &amp; Safety client for inspections, observations, incidents, and safety management. Provides strongly-typed access to Procore's quality and safety API resources.</Description>
+    <Title>Procore SDK Quality &amp; Safety Client</Title>
+    <Description>Procore SDK Quality &amp; Safety client for inspections, observations, incidents, and safety management. Provides strongly-typed access to Procore's quality and safety API resources with comprehensive safety incident tracking.</Description>
+    <PackageTags>$(PackageTags);quality;safety;inspections;observations;incidents;compliance</PackageTags>
+    <PackageReleaseNotes>Quality &amp; Safety client with inspection APIs, safety incident management, observation tracking, and compliance reporting capabilities.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

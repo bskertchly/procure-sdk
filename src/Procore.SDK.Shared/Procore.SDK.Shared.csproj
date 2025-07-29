@@ -2,7 +2,10 @@
 
   <PropertyGroup>
     <PackageId>Procore.SDK.Shared</PackageId>
-    <Description>Shared authentication, HTTP infrastructure, and common models for the Procore .NET SDK. Provides OAuth 2.0 with PKCE authentication flow and token management.</Description>
+    <Title>Procore SDK Shared Infrastructure</Title>
+    <Description>Shared authentication, HTTP infrastructure, and common models for the Procore .NET SDK. Provides OAuth 2.0 with PKCE authentication flow, token management, and HTTP message handlers.</Description>
+    <PackageTags>$(PackageTags);authentication;oauth;pkce;shared;infrastructure</PackageTags>
+    <PackageReleaseNotes>Authentication infrastructure with OAuth 2.0 PKCE flow, multiple token storage implementations, and HTTP message handlers for automatic token injection.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

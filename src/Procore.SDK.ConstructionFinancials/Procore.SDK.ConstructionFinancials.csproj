@@ -2,7 +2,10 @@
 
   <PropertyGroup>
     <PackageId>Procore.SDK.ConstructionFinancials</PackageId>
-    <Description>Procore SDK Construction Financials client for contracts, purchase orders, budgets, and financial management. Provides strongly-typed access to Procore's financial API resources.</Description>
+    <Title>Procore SDK Construction Financials Client</Title>
+    <Description>Procore SDK Construction Financials client for contracts, purchase orders, budgets, and financial management. Provides strongly-typed access to Procore's financial API resources with precision decimal handling for financial calculations.</Description>
+    <PackageTags>$(PackageTags);financials;contracts;budgets;purchase-orders;invoices;financial-management</PackageTags>
+    <PackageReleaseNotes>Construction Financials client with Contract, Budget, Invoice APIs, purchase order management, and financial reporting with precision decimal handling.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

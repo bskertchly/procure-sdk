@@ -2,7 +2,10 @@
 
   <PropertyGroup>
     <PackageId>Procore.SDK.Core</PackageId>
-    <Description>Procore SDK Core client for companies, users, documents, and configuration management. Provides strongly-typed access to Procore's foundational API resources.</Description>
+    <Title>Procore SDK Core Client</Title>
+    <Description>Procore SDK Core client for companies, users, documents, and configuration management. Provides strongly-typed access to Procore's foundational API resources with resilience patterns and type mapping.</Description>
+    <PackageTags>$(PackageTags);core;companies;users;documents</PackageTags>
+    <PackageReleaseNotes>Core client with Company, User, and Document APIs. Includes type mapping, resilience policies, and comprehensive error handling.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
