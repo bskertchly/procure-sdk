@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,11 +19,11 @@ namespace Procore.SDK.Core.Resilience;
 /// <summary>
 /// Factory for creating standardized resilience policies for Procore SDK operations.
 /// </summary>
-public class PolicyFactory
+public class PolicyFactory : IDisposable
 {
     private readonly ResilienceOptions _options;
     private readonly ILogger<PolicyFactory> _logger;
-    private readonly Random _random;
+    private readonly RandomNumberGenerator _random;
     
     // Cache for policies to improve performance
     private readonly ConcurrentDictionary<string, IAsyncPolicy<HttpResponseMessage>> _policyCache;
@@ -36,7 +37,7 @@ public class PolicyFactory
     {
         _options = options.Value;
         _logger = logger;
-        _random = new Random();
+        _random = RandomNumberGenerator.Create();
         _policyCache = new ConcurrentDictionary<string, IAsyncPolicy<HttpResponseMessage>>();
     }
 
@@ -193,7 +194,10 @@ public class PolicyFactory
         // Add jitter to prevent thundering herd
         if (_options.Retry.UseJitter && _options.Retry.MaxJitterMs > 0)
         {
-            TimeSpan jitter = TimeSpan.FromMilliseconds(_random.Next(0, _options.Retry.MaxJitterMs));
+            byte[] randomBytes = new byte[4];
+            _random.GetBytes(randomBytes);
+            int jitterValue = Math.Abs(BitConverter.ToInt32(randomBytes, 0)) % _options.Retry.MaxJitterMs;
+            TimeSpan jitter = TimeSpan.FromMilliseconds(jitterValue);
             baseDelay = baseDelay.Add(jitter);
         }
 
@@ -267,5 +271,14 @@ public class PolicyFactory
         _logger.LogInformation(
             "Circuit breaker half-open for operation {Operation} - testing service",
             operation);
+    }
+
+    /// <summary>
+    /// Disposes the RandomNumberGenerator to free resources.
+    /// </summary>
+    public void Dispose()
+    {
+        _random?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

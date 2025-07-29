@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -190,7 +191,7 @@ public class ProcoreCoreClient : ICoreClient
     /// <param name="request">The company creation request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The created company.</returns>
-    public async Task<Company> CreateCompanyAsync(CreateCompanyRequest request, CancellationToken cancellationToken = default)
+    public Task<Company> CreateCompanyAsync(CreateCompanyRequest request, CancellationToken cancellationToken = default)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
         
@@ -211,14 +212,13 @@ public class ProcoreCoreClient : ICoreClient
             
             _logger?.LogWarning("CreateCompanyAsync: Company creation not available in generated client. This operation typically requires administrative access.");
             
-            // Return a mock response for interface compliance
-            await Task.CompletedTask.ConfigureAwait(false);
-            throw new NotSupportedException("Company creation is not supported through the standard API. Contact Procore support for company provisioning.");
+            // Return a failed task since no async work is performed
+            return Task.FromException<Company>(new NotSupportedException("Company creation is not supported through the standard API. Contact Procore support for company provisioning."));
         }
         catch (HttpRequestException ex)
         {
             _logger?.LogError(ex, "Failed to create company {CompanyName}", request.Name);
-            throw ErrorMapper.MapHttpException(ex);
+            return Task.FromException<Company>(ErrorMapper.MapHttpException(ex));
         }
     }
 
@@ -288,9 +288,7 @@ public class ProcoreCoreClient : ICoreClient
             
             _logger?.LogWarning("DeleteCompanyAsync: Company deletion not available in generated client. This operation typically requires administrative access.");
             
-            // For demonstration, we'll simulate the operation
-            await Task.CompletedTask.ConfigureAwait(false);
-            
+            // Throw immediately since no async work is performed
             throw new NotSupportedException("Company deletion is not supported through the standard API. Contact Procore support for account management.");
         }, "DeleteCompanyAsync", null, cancellationToken).ConfigureAwait(false);
     }
@@ -623,12 +621,15 @@ public class ProcoreCoreClient : ICoreClient
             
             _logger?.LogWarning("UploadDocumentAsync: File upload requires additional multipart implementation. Returning simulated response.");
             
-            // Simulate successful upload
-            await Task.CompletedTask.ConfigureAwait(false);
+            // Generate a secure random ID for simulation
+            using var rng = RandomNumberGenerator.Create();
+            byte[] randomBytes = new byte[4];
+            rng.GetBytes(randomBytes);
+            int randomId = 1000 + (Math.Abs(BitConverter.ToInt32(randomBytes, 0)) % 8999);
             
             return new Document
             {
-                Id = new Random().Next(1000, 9999), // Simulated ID
+                Id = randomId, // Simulated ID using cryptographically secure random
                 Name = request.Name,
                 Description = request.Description,
                 FileName = request.FileName,
