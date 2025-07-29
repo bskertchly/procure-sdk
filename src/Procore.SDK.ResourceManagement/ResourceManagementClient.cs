@@ -995,7 +995,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <param name="resourceId">The resource ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The resource.</returns>
-    public async Task<Resource> GetResourceAsync(int companyId, int resourceId, CancellationToken cancellationToken = default)
+    public Task<Resource> GetResourceAsync(int companyId, int resourceId, CancellationToken cancellationToken = default)
     {
         // For legacy compatibility, we need a project ID but don't have one
         // This would require additional API calls to discover the project
@@ -1092,7 +1092,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <param name="request">The resource update request.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The updated resource.</returns>
-    public async Task<Resource> UpdateResourceAsync(int companyId, int resourceId, CreateResourceRequest request, CancellationToken cancellationToken = default)
+    public Task<Resource> UpdateResourceAsync(int companyId, int resourceId, CreateResourceRequest request, CancellationToken cancellationToken = default)
     {
         // For legacy compatibility, we need a project ID but don't have one
         throw new NotSupportedException("UpdateResourceAsync requires projectId parameter. Use UpdateResourceAsync(companyId, projectId, resourceId, request) instead.");
@@ -1158,7 +1158,7 @@ public class ProcoreResourceManagementClient : IResourceManagementClient
     /// <param name="companyId">The company ID.</param>
     /// <param name="resourceId">The resource ID.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
-    public async Task DeleteResourceAsync(int companyId, int resourceId, CancellationToken cancellationToken = default)
+    public Task DeleteResourceAsync(int companyId, int resourceId, CancellationToken cancellationToken = default)
     {
         // For legacy compatibility, we need a project ID but don't have one
         throw new NotSupportedException("DeleteResourceAsync requires projectId parameter. Use DeleteResourceAsync(companyId, projectId, resourceId) instead.");

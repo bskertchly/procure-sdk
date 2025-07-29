@@ -26,7 +26,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
-    <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+    <!-- Removed WarningsNotAsErrors to show all warnings -->
     
     <!-- Code analysis -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
@@ -40,7 +40,7 @@
     <EnableSecurityCodeScan>true</EnableSecurityCodeScan>
     
     <!-- Style enforcement -->
-    <TreatStyleCopWarningsAsErrors>false</TreatStyleCopWarningsAsErrors>
+    <TreatStyleCopWarningsAsErrors>true</TreatStyleCopWarningsAsErrors>
   </PropertyGroup>
 
   <!-- Test project specific properties -->

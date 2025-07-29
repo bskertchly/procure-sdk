@@ -57,6 +57,11 @@
     <Rule Id="CA2015" Action="Warning" /> <!-- Do not define finalizers for types derived from MemoryManager<T> -->
     <Rule Id="CA2016" Action="Warning" /> <!-- Forward the CancellationToken parameter to methods that take one -->
     <Rule Id="CA2018" Action="Warning" /> <!-- The count argument to Buffer.BlockCopy should specify the number of bytes to copy -->
+    
+    <!-- Security rules -->
+    <Rule Id="CA5394" Action="Warning" /> <!-- Do not use insecure randomness -->
+    <Rule Id="CA5395" Action="Warning" /> <!-- Miss HttpVerb attribute for action methods -->
+    <Rule Id="CA5391" Action="Warning" /> <!-- Use antiforgery tokens in ASP.NET Core MVC controllers -->
   </Rules>
 
   <!-- Security Code Scan Rules -->
@@ -128,30 +133,91 @@
     <Rule Id="S1200" Action="Warning" /> <!-- Classes should not be coupled to too many other classes -->
   </Rules>
 
+  <!-- Microsoft C# Compiler Rules for Documentation -->
+  <Rules AnalyzerId="Microsoft.CodeAnalysis.CSharp" RuleNamespace="Microsoft.CodeAnalysis.CSharp">
+    <!-- XML Documentation rules -->
+    <Rule Id="CS1591" Action="Warning" />    <!-- Missing XML comment for publicly visible type or member -->
+    <Rule Id="CS1572" Action="Warning" />    <!-- XML comment has a param tag, but there is no parameter by that name -->
+    <Rule Id="CS1573" Action="Warning" />    <!-- Parameter has no matching param tag in the XML comment -->
+    <Rule Id="CS1574" Action="Warning" />    <!-- XML comment has cref attribute that could not be resolved -->
+    <Rule Id="CS1580" Action="Warning" />    <!-- Invalid type for parameter in XML comment cref attribute -->
+    <Rule Id="CS1581" Action="Warning" />    <!-- Invalid return type in XML comment cref attribute -->
+    <Rule Id="CS1584" Action="Warning" />    <!-- XML comment has syntactically incorrect cref attribute -->
+    <Rule Id="CS1587" Action="Warning" />    <!-- XML comment is not placed on a valid language element -->
+    <Rule Id="CS1589" Action="Warning" />    <!-- Unable to include XML fragment -->
+    <Rule Id="CS1590" Action="Warning" />    <!-- Invalid XML include element -->
+    <Rule Id="CS1592" Action="Warning" />    <!-- Badly formed XML in included comments file -->
+    <Rule Id="CS1710" Action="Warning" />    <!-- XML comment on 'type' has a duplicate typeparam tag for 'parameter' -->
+    <Rule Id="CS1711" Action="Warning" />    <!-- XML comment has a typeparam tag for 'type parameter', but there is no type parameter by that name -->
+    <Rule Id="CS1712" Action="Warning" />    <!-- Type parameter has no matching typeparam tag in the XML comment -->
+    <Rule Id="CS1723" Action="Warning" />    <!-- XML comment has cref attribute that refers to a type parameter -->
+  </Rules>
+
   <!-- StyleCop Analyzer Rules -->
   <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
-    <!-- Documentation rules - relaxed for generated code -->
-    <Rule Id="SA1600" Action="Info" />    <!-- Elements should be documented -->
-    <Rule Id="SA1601" Action="Info" />    <!-- Partial elements should be documented -->
-    <Rule Id="SA1602" Action="Info" />    <!-- Enumeration items should be documented -->
-    <Rule Id="SA1633" Action="None" />    <!-- File should have header (disabled) -->
-    <Rule Id="SA1652" Action="Info" />    <!-- Enable XML documentation output -->
+    <!-- Documentation rules - show as warnings -->
+    <Rule Id="SA1600" Action="Warning" />    <!-- Elements should be documented -->
+    <Rule Id="SA1601" Action="Warning" />    <!-- Partial elements should be documented -->
+    <Rule Id="SA1602" Action="Warning" />    <!-- Enumeration items should be documented -->
+    <Rule Id="SA1610" Action="Warning" />    <!-- Property documentation should have value text -->
+    <Rule Id="SA1611" Action="Warning" />    <!-- Element parameters should be documented -->
+    <Rule Id="SA1612" Action="Warning" />    <!-- Element parameter documentation should match element parameters -->
+    <Rule Id="SA1613" Action="Warning" />    <!-- Element parameter documentation should declare parameter name -->
+    <Rule Id="SA1614" Action="Warning" />    <!-- Element parameter documentation should have text -->
+    <Rule Id="SA1615" Action="Warning" />    <!-- Element return value should be documented -->
+    <Rule Id="SA1616" Action="Warning" />    <!-- Element return value documentation should have text -->
+    <Rule Id="SA1617" Action="Warning" />    <!-- Void return value should not be documented -->
+    <Rule Id="SA1618" Action="Warning" />    <!-- Generic type parameters should be documented -->
+    <Rule Id="SA1619" Action="Warning" />    <!-- Generic type parameters should be documented partial class -->
+    <Rule Id="SA1620" Action="Warning" />    <!-- Generic type parameter documentation should match type parameters -->
+    <Rule Id="SA1621" Action="Warning" />    <!-- Generic type parameter documentation should declare parameter name -->
+    <Rule Id="SA1622" Action="Warning" />    <!-- Generic type parameter documentation should have text -->
+    <Rule Id="SA1623" Action="Warning" />    <!-- Property summary documentation should match accessors -->
+    <Rule Id="SA1624" Action="Warning" />    <!-- Property summary documentation should omit accessor with restricted access -->
+    <Rule Id="SA1625" Action="Warning" />    <!-- Element documentation should not be copied and pasted -->
+    <Rule Id="SA1626" Action="Warning" />    <!-- Single-line comments should not use documentation style slashes -->
+    <Rule Id="SA1627" Action="Warning" />    <!-- Documentation text should not be empty -->
+    <Rule Id="SA1628" Action="Warning" />    <!-- Documentation text should begin with a capital letter -->
+    <Rule Id="SA1629" Action="Warning" />    <!-- Documentation text should end with a period -->
+    <Rule Id="SA1630" Action="Warning" />    <!-- Documentation text should contain whitespace -->
+    <Rule Id="SA1631" Action="Warning" />    <!-- Documentation should meet character percentage -->
+    <Rule Id="SA1632" Action="Warning" />    <!-- Documentation text should meet minimum character length -->
+    <Rule Id="SA1633" Action="None" />       <!-- File should have header (disabled) -->
+    <Rule Id="SA1634" Action="Warning" />    <!-- File header should show copyright -->
+    <Rule Id="SA1635" Action="Warning" />    <!-- File header should have copyright text -->
+    <Rule Id="SA1636" Action="Warning" />    <!-- File header copyright text should match -->
+    <Rule Id="SA1637" Action="Warning" />    <!-- File header should contain file name -->
+    <Rule Id="SA1638" Action="Warning" />    <!-- File header file name documentation should match file name -->
+    <Rule Id="SA1639" Action="Warning" />    <!-- File header should have summary -->
+    <Rule Id="SA1640" Action="Warning" />    <!-- File header should have valid company text -->
+    <Rule Id="SA1641" Action="Warning" />    <!-- File header company name text should match -->
+    <Rule Id="SA1642" Action="Warning" />    <!-- Constructor summary documentation should begin with standard text -->
+    <Rule Id="SA1643" Action="Warning" />    <!-- Destructor summary documentation should begin with standard text -->
+    <Rule Id="SA1644" Action="Warning" />    <!-- Documentation headers should not contain blank lines -->
+    <Rule Id="SA1645" Action="Warning" />    <!-- Included documentation file does not exist -->
+    <Rule Id="SA1646" Action="Warning" />    <!-- Included documentation XPath does not exist -->
+    <Rule Id="SA1647" Action="Warning" />    <!-- Include node does not contain valid file and path -->
+    <Rule Id="SA1648" Action="Warning" />    <!-- Inheritdoc should be used with inheriting class -->
+    <Rule Id="SA1649" Action="Warning" />    <!-- File name should match first type name -->
+    <Rule Id="SA1650" Action="Warning" />    <!-- Element documentation should be spelled correctly -->
+    <Rule Id="SA1651" Action="Warning" />    <!-- Do not use placeholder elements -->
+    <Rule Id="SA1652" Action="Warning" />    <!-- Enable XML documentation output -->
     
     <!-- Spacing rules -->
-    <Rule Id="SA1000" Action="Info" />    <!-- Keywords should be spaced correctly -->
-    <Rule Id="SA1003" Action="Info" />    <!-- Symbols should be spaced correctly -->
-    <Rule Id="SA1008" Action="Info" />    <!-- Opening parenthesis should be spaced correctly -->
-    <Rule Id="SA1009" Action="Info" />    <!-- Closing parenthesis should be spaced correctly -->
-    <Rule Id="SA1010" Action="Info" />    <!-- Opening square brackets should be spaced correctly -->
-    <Rule Id="SA1011" Action="Info" />    <!-- Closing square brackets should be spaced correctly -->
+    <Rule Id="SA1000" Action="Warning" />    <!-- Keywords should be spaced correctly -->
+    <Rule Id="SA1003" Action="Warning" />    <!-- Symbols should be spaced correctly -->
+    <Rule Id="SA1008" Action="Warning" />    <!-- Opening parenthesis should be spaced correctly -->
+    <Rule Id="SA1009" Action="Warning" />    <!-- Closing parenthesis should be spaced correctly -->
+    <Rule Id="SA1010" Action="Warning" />    <!-- Opening square brackets should be spaced correctly -->
+    <Rule Id="SA1011" Action="Warning" />    <!-- Closing square brackets should be spaced correctly -->
     
     <!-- Readability rules -->
     <Rule Id="SA1101" Action="None" />    <!-- Prefix local calls with this (disabled) -->
-    <Rule Id="SA1124" Action="Info" />    <!-- Do not use regions -->
+    <Rule Id="SA1124" Action="Warning" />    <!-- Do not use regions -->
     <Rule Id="SA1200" Action="None" />    <!-- Using directives should be placed correctly (disabled) -->
-    <Rule Id="SA1208" Action="Info" />    <!-- System using directives should be placed first -->
+    <Rule Id="SA1208" Action="Warning" />    <!-- System using directives should be placed first -->
     <Rule Id="SA1309" Action="None" />    <!-- Field names should not begin with underscore (disabled) -->
-    <Rule Id="SA1413" Action="Info" />    <!-- Use trailing comma in multi-line initializers -->
+    <Rule Id="SA1413" Action="Warning" />    <!-- Use trailing comma in multi-line initializers -->
   </Rules>
 
   <!-- Nullable reference type rules -->

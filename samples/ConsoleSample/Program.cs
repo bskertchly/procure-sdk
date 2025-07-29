@@ -82,8 +82,8 @@ class Program
     private static async Task RunApplicationAsync()
     {
         var oauthHelper = _serviceProvider!.GetRequiredService<OAuthFlowHelper>();
-        var tokenManager = _serviceProvider.GetRequiredService<ITokenManager>();
-        var coreClient = _serviceProvider.GetRequiredService<ICoreClient>();
+        var tokenManager = _serviceProvider!.GetRequiredService<ITokenManager>();
+        var coreClient = _serviceProvider!.GetRequiredService<ICoreClient>();
 
         // Check if we already have a valid token
         var existingToken = await tokenManager.GetAccessTokenAsync();
@@ -148,7 +148,7 @@ class Program
 
             Console.WriteLine("✅ Authentication successful!");
             Console.WriteLine($"   Token expires: {token.ExpiresAt:yyyy-MM-dd HH:mm:ss} UTC");
-            Console.WriteLine($"   Scopes: {string.Join(", ", token.Scopes)}");
+            Console.WriteLine($"   Scopes: {string.Join(", ", token.Scopes ?? [])}");
 
             _logger!.LogInformation("OAuth authentication completed successfully");
         }
