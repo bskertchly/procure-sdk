@@ -26,7 +26,8 @@ public sealed class FileTokenStorage : ITokenStorage, IDisposable
     /// <param name="filePath">Path to the file where tokens will be stored</param>
     public FileTokenStorage(string filePath)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("Value cannot be null or whitespace.", nameof(filePath));
 
         _filePath = filePath;
 

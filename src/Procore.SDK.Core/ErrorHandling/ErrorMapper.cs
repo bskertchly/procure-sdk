@@ -161,7 +161,7 @@ public class ErrorMapper
         }
 
         // Try parsing as HTTP date
-        if (DateTimeOffset.TryParse(retryAfterValue, CultureInfo.InvariantCulture, out var dateTime))
+        if (DateTimeOffset.TryParse(retryAfterValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateTime))
         {
             var retryAfter = dateTime - DateTimeOffset.UtcNow;
             return retryAfter > TimeSpan.Zero ? retryAfter : TimeSpan.Zero;
