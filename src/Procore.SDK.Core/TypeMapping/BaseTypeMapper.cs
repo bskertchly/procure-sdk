@@ -257,4 +257,115 @@ public abstract class BaseTypeMapper<TWrapper, TGenerated> : ITypeMapper<TWrappe
             
         return new DateTime(source.Value.Year, source.Value.Month, source.Value.Day);
     }
+
+    /// <summary>
+    /// Helper method to safely map collections, filtering out null values.
+    /// </summary>
+    /// <typeparam name="TSource">Source collection item type</typeparam>
+    /// <typeparam name="TTarget">Target collection item type</typeparam>
+    /// <param name="source">Source collection</param>
+    /// <param name="mapper">Function to map individual items</param>
+    /// <returns>Mapped collection without null values</returns>
+    protected static List<TTarget> MapCollection<TSource, TTarget>(
+        IEnumerable<TSource>? source, 
+        Func<TSource, TTarget?> mapper)
+        where TTarget : class
+    {
+        if (source == null)
+            return new List<TTarget>();
+
+        var result = new List<TTarget>();
+        foreach (var item in source)
+        {
+            if (item != null)
+            {
+                var mapped = mapper(item);
+                if (mapped != null)
+                {
+                    result.Add(mapped);
+                }
+            }
+        }
+        
+        return result;
+    }
+
+    /// <summary>
+    /// Helper method to safely map dictionaries with custom field handling.
+    /// </summary>
+    /// <param name="source">Source dictionary</param>
+    /// <param name="excludeKeys">Keys to exclude from mapping</param>
+    /// <returns>Mapped dictionary excluding specified keys</returns>
+    protected static Dictionary<string, object>? MapCustomFields(
+        IDictionary<string, object>? source,
+        HashSet<string>? excludeKeys = null)
+    {
+        if (source == null || source.Count == 0)
+            return null;
+
+        excludeKeys ??= new HashSet<string>();
+        
+        var result = new Dictionary<string, object>();
+        foreach (var kvp in source)
+        {
+            if (!excludeKeys.Contains(kvp.Key) && kvp.Value != null)
+            {
+                result[kvp.Key] = kvp.Value;
+            }
+        }
+
+        return result.Count > 0 ? result : null;
+    }
+
+    /// <summary>
+    /// Helper method to safely map numeric values with validation.
+    /// </summary>
+    /// <param name="source">Source numeric value</param>
+    /// <param name="defaultValue">Default value if source is null or invalid</param>
+    /// <returns>Mapped numeric value</returns>
+    protected static T MapNumeric<T>(T? source, T defaultValue = default) where T : struct
+    {
+        return source ?? defaultValue;
+    }
+
+    /// <summary>
+    /// Helper method to safely map string values with trimming and null handling.
+    /// </summary>
+    /// <param name="source">Source string value</param>
+    /// <param name="defaultValue">Default value if source is null or empty</param>
+    /// <param name="trimWhitespace">Whether to trim whitespace</param>
+    /// <returns>Mapped string value</returns>
+    protected static string MapString(string? source, string defaultValue = "", bool trimWhitespace = true)
+    {
+        if (string.IsNullOrEmpty(source))
+            return defaultValue;
+
+        return trimWhitespace ? source.Trim() : source;
+    }
+
+    /// <summary>
+    /// Helper method to map complex nested objects using a mapper function.
+    /// </summary>
+    /// <typeparam name="TSource">Source object type</typeparam>
+    /// <typeparam name="TTarget">Target object type</typeparam>
+    /// <param name="source">Source object</param>
+    /// <param name="mapper">Function to map the object</param>
+    /// <returns>Mapped object or null</returns>
+    protected static TTarget? MapNestedObject<TSource, TTarget>(TSource? source, Func<TSource, TTarget> mapper)
+        where TSource : class
+        where TTarget : class
+    {
+        return source != null ? mapper(source) : null;
+    }
+
+    /// <summary>
+    /// Helper method to validate and convert ID values.
+    /// </summary>
+    /// <param name="source">Source ID value</param>
+    /// <param name="defaultValue">Default value if source is null or invalid</param>
+    /// <returns>Validated ID value</returns>
+    protected static int MapId(int? source, int defaultValue = 0)
+    {
+        return source.HasValue && source.Value > 0 ? source.Value : defaultValue;
+    }
 }
