@@ -402,7 +402,7 @@ public class TypeMappingExceptionTests
     public void TypeMappingException_WithNullInnerException_ShouldNotThrow()
     {
         // Act & Assert - Should not throw
-        var exception = new TypeMappingException("Test", null, typeof(string), typeof(int));
+        var exception = new TypeMappingException("Test", (Exception?)null, typeof(string), typeof(int));
         
         exception.Message.Should().Be("Test");
         exception.InnerException.Should().BeNull();

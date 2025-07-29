@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Procore.SDK.Core.TypeMapping;
 using Procore.SDK.ConstructionFinancials.Models;
 using GeneratedDocumentResponse = Procore.SDK.ConstructionFinancials.Rest.V20.Companies.Item.Projects.Item.Compliance.Invoices.Item.Documents.DocumentsGetResponse;
+using GeneratedDocumentsGetResponse = Procore.SDK.ConstructionFinancials.Rest.V20.Companies.Item.Projects.Item.Compliance.Invoices.Item.Documents.DocumentsGetResponse;
+using GeneratedDocumentsPostResponse = Procore.SDK.ConstructionFinancials.Rest.V20.Companies.Item.Projects.Item.Compliance.Invoices.Item.Documents.DocumentsPostResponse;
 
 namespace Procore.SDK.ConstructionFinancials.TypeMapping;
 
@@ -24,10 +26,13 @@ public static class ConstructionFinancialsTypeMappingExtensions
 
         // Register ConstructionFinancials-specific type mappers
         services.AddTypeMapper<Invoice, GeneratedDocumentResponse, InvoiceTypeMapper>();
+        services.AddTypeMapper<CostCode, GeneratedDocumentsPostResponse, CostCodeTypeMapper>();
+        services.AddTypeMapper<FinancialTransaction, GeneratedDocumentsGetResponse, FinancialTransactionTypeMapper>();
 
-        // Future mappers can be added here:
-        // services.AddTypeMapper<CostCode, GeneratedCostCode, CostCodeTypeMapper>();
-        // services.AddTypeMapper<FinancialTransaction, GeneratedTransaction, FinancialTransactionTypeMapper>();
+        // Register additional mappers that already exist
+        services.AddSingleton<InvoiceConfigurationTypeMapper>();
+        services.AddSingleton<ComplianceDocumentTypeMapper>();
+        services.AddSingleton<AsyncJobTypeMapper>();
 
         return services;
     }
