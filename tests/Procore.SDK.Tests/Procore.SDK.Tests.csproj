@@ -24,12 +24,12 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.AspNetCore.Hosting" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Procore.SDK\Procore.SDK.csproj" />
-    <!-- Temporarily disabled due to compilation issues with generated Kiota clients -->
-    <!-- <ProjectReference Include="..\..\src\Procore.SDK.Core\Procore.SDK.Core.csproj" /> -->
+    <ProjectReference Include="..\..\src\Procore.SDK.Core\Procore.SDK.Core.csproj" />
     <ProjectReference Include="..\..\src\Procore.SDK.Shared\Procore.SDK.Shared.csproj" />
   </ItemGroup>
 

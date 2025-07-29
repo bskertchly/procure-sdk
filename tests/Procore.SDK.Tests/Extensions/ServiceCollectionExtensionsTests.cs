@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Http.HttpClientLibrary;
+using Procore.SDK.Core.Models;
 using Procore.SDK.Extensions;
 using System.Net.Http;
 
