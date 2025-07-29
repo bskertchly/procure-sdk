@@ -1,0 +1,292 @@
+name: NuGet Package Publishing
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version (e.g., 1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  CONFIGURATION: 'Release'
+  ARTIFACTS_PATH: './artifacts'
+
+jobs:
+  validate-and-build:
+    name: Validate and Build Packages
+    runs-on: ubuntu-latest
+    
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Determine version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "release" ]; then
+          VERSION="${{ github.event.release.tag_name }}"
+          # Remove 'v' prefix if present
+          VERSION=${VERSION#v}
+        else
+          VERSION="${{ github.event.inputs.version }}"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Using version: $VERSION"
+
+    - name: Update version in Directory.Build.props
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        sed -i "s/<VersionPrefix>.*<\/VersionPrefix>/<VersionPrefix>$VERSION<\/VersionPrefix>/g" Directory.Build.props
+        echo "Updated version to: $VERSION"
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration ${{ env.CONFIGURATION }} --no-restore
+
+    - name: Run tests
+      run: dotnet test --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal --collect:"XPlat Code Coverage"
+
+    - name: Validate packages
+      run: |
+        # Use bash script for cross-platform compatibility
+        chmod +x ./scripts/validate-packages.sh
+        ./scripts/validate-packages.sh ${{ env.CONFIGURATION }} ${{ env.ARTIFACTS_PATH }}/packages
+
+    - name: Create packages
+      run: |
+        mkdir -p ${{ env.ARTIFACTS_PATH }}/packages
+        
+        # Package all SDK projects
+        dotnet pack src/Procore.SDK/Procore.SDK.csproj --configuration ${{ env.CONFIGURATION }} --output ${{ env.ARTIFACTS_PATH }}/packages --no-build
+        dotnet pack src/Procore.SDK.Core/Procore.SDK.Core.csproj --configuration ${{ env.CONFIGURATION }} --output ${{ env.ARTIFACTS_PATH }}/packages --no-build
+        dotnet pack src/Procore.SDK.Shared/Procore.SDK.Shared.csproj --configuration ${{ env.CONFIGURATION }} --output ${{ env.ARTIFACTS_PATH }}/packages --no-build
+        dotnet pack src/Procore.SDK.ProjectManagement/Procore.SDK.ProjectManagement.csproj --configuration ${{ env.CONFIGURATION }} --output ${{ env.ARTIFACTS_PATH }}/packages --no-build
+        dotnet pack src/Procore.SDK.QualitySafety/Procore.SDK.QualitySafety.csproj --configuration ${{ env.CONFIGURATION }} --output ${{ env.ARTIFACTS_PATH }}/packages --no-build
+        dotnet pack src/Procore.SDK.ConstructionFinancials/Procore.SDK.ConstructionFinancials.csproj --configuration ${{ env.CONFIGURATION }} --output ${{ env.ARTIFACTS_PATH }}/packages --no-build
+        dotnet pack src/Procore.SDK.FieldProductivity/Procore.SDK.FieldProductivity.csproj --configuration ${{ env.CONFIGURATION }} --output ${{ env.ARTIFACTS_PATH }}/packages --no-build
+        dotnet pack src/Procore.SDK.ResourceManagement/Procore.SDK.ResourceManagement.csproj --configuration ${{ env.CONFIGURATION }} --output ${{ env.ARTIFACTS_PATH }}/packages --no-build
+
+    - name: List generated packages
+      run: |
+        echo "Generated packages:"
+        ls -la ${{ env.ARTIFACTS_PATH }}/packages/
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages
+        path: ${{ env.ARTIFACTS_PATH }}/packages/*.nupkg
+        retention-days: 30
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: validate-and-build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-packages
+        path: ${{ env.ARTIFACTS_PATH }}/packages
+
+    - name: Install security scanning tools
+      run: |
+        # Install NuGet package vulnerability scanner
+        dotnet tool install --global dotnet-outdated-tool || true
+        # Create directory for security reports
+        mkdir -p security-reports
+
+    - name: Run security scan
+      run: |
+        # Scan for vulnerable dependencies
+        echo "Scanning for vulnerable dependencies..." | tee security-reports/security-report.txt
+        dotnet list package --vulnerable --include-transitive >> security-reports/security-report.txt 2>&1 || true
+        
+        # Check for outdated packages
+        echo "Checking for outdated packages..." | tee security-reports/outdated-report.txt
+        dotnet outdated >> security-reports/outdated-report.txt 2>&1 || true
+        
+        # Package validation
+        echo "Validating package contents..." | tee security-reports/validation-report.txt
+        for package in ${{ env.ARTIFACTS_PATH }}/packages/*.nupkg; do
+          if [[ -f "$package" ]]; then
+            echo "Validating $(basename "$package")..." >> security-reports/validation-report.txt
+            unzip -t "$package" >> security-reports/validation-report.txt 2>&1 || echo "Package validation failed for $(basename "$package")" >> security-reports/validation-report.txt
+          fi
+        done
+        
+        echo "Security scan completed"
+        
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: security-reports/
+        retention-days: 30
+
+  publish-nuget:
+    name: Publish to NuGet.org
+    runs-on: ubuntu-latest
+    needs: [validate-and-build, security-scan]
+    environment: production
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-packages
+        path: ${{ env.ARTIFACTS_PATH }}/packages
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Publish packages to NuGet.org
+      run: |
+        for package in ${{ env.ARTIFACTS_PATH }}/packages/*.nupkg; do
+          echo "Publishing $(basename "$package")..."
+          dotnet nuget push "$package" \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate \
+            --no-symbols || {
+              echo "Failed to publish $(basename "$package")"
+              exit 1
+            }
+        done
+        
+        # Publish symbol packages separately
+        for package in ${{ env.ARTIFACTS_PATH }}/packages/*.snupkg; do
+          echo "Publishing symbols for $(basename "$package")..."
+          dotnet nuget push "$package" \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate || {
+              echo "Warning: Failed to publish symbols for $(basename "$package")"
+              # Don't fail the build for symbol publishing failures
+            }
+        done
+
+    - name: Create GitHub Release Assets
+      if: github.event_name == 'release'
+      run: |
+        for package in ${{ env.ARTIFACTS_PATH }}/packages/*.nupkg; do
+          gh release upload ${{ github.event.release.tag_name }} "$package"
+        done
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  validate-installation:
+    name: Validate Package Installation
+    runs-on: ${{ matrix.os }}
+    needs: publish-nuget
+    if: always() && needs.publish-nuget.result == 'success'
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        framework: [net6.0, net8.0]
+        project-type: [console, webapi, classlib]
+        
+    steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Wait for NuGet indexing
+      run: sleep 300  # Wait 5 minutes for NuGet to index the packages
+
+    - name: Create test project
+      run: |
+        mkdir test-project
+        cd test-project
+        dotnet new ${{ matrix.project-type}} --framework ${{ matrix.framework }}
+
+    - name: Install Procore SDK package
+      run: |
+        cd test-project
+        dotnet add package Procore.SDK --version ${{ needs.validate-and-build.outputs.version }}
+
+    - name: Verify installation
+      run: |
+        cd test-project
+        dotnet restore
+        dotnet build
+        echo "✅ Package installation successful on ${{ matrix.os }} with ${{ matrix.framework }} (${{ matrix.project-type }})"
+
+  notify-completion:
+    name: Notify Completion
+    runs-on: ubuntu-latest
+    needs: [validate-and-build, security-scan, publish-nuget, validate-installation]
+    if: always()
+    
+    steps:
+    - name: Determine overall status
+      id: status
+      run: |
+        if [ "${{ needs.publish-nuget.result }}" = "success" ]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "message=✅ NuGet packages published successfully" >> $GITHUB_OUTPUT
+        elif [ "${{ needs.validate-and-build.result }}" = "failure" ]; then
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "message=❌ Build and validation failed" >> $GITHUB_OUTPUT
+        elif [ "${{ needs.security-scan.result }}" = "failure" ]; then
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "message=❌ Security scan failed" >> $GITHUB_OUTPUT
+        elif [ "${{ needs.publish-nuget.result }}" = "failure" ]; then
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "message=❌ NuGet publishing failed" >> $GITHUB_OUTPUT
+        else
+          echo "status=warning" >> $GITHUB_OUTPUT
+          echo "message=⚠️ Pipeline completed with warnings" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create summary
+      run: |
+        echo "## 📦 NuGet Package Publishing Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** ${{ needs.validate-and-build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Status:** ${{ steps.status.outputs.message }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Job Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build & Validate:** ${{ needs.validate-and-build.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Security Scan:** ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Publish NuGet:** ${{ needs.publish-nuget.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Installation Test:** ${{ needs.validate-installation.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.publish-nuget.result }}" = "success" ]; then
+          echo "### 🎉 Published Packages" >> $GITHUB_STEP_SUMMARY
+          echo "All packages have been published to [NuGet.org](https://www.nuget.org/packages?q=Procore.SDK)" >> $GITHUB_STEP_SUMMARY
+        fi
