@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Procore.SDK.ConstructionFinancials\Procore.SDK.ConstructionFinancials.csproj" />
     <ProjectReference Include="..\..\src\Procore.SDK.Shared\Procore.SDK.Shared.csproj" />
+    <ProjectReference Include="..\Procore.SDK.Core.Tests\Procore.SDK.Core.Tests.csproj" />
   </ItemGroup>
 
 </Project>

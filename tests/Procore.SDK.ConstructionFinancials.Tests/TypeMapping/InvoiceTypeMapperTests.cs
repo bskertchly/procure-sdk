@@ -128,7 +128,7 @@ public class InvoiceTypeMapperTests
             AdditionalData = new Dictionary<string, object>
             {
                 ["id"] = "not-a-number",
-                ["invoice_id"] = null,
+                ["invoice_id"] = (int?)null,
                 ["document_id"] = ""
             }
         };
