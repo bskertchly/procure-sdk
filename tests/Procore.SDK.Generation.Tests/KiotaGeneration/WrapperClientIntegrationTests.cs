@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Procore.SDK.ProjectManagement;
@@ -32,7 +33,10 @@ public class WrapperClientIntegrationTests
         
         _mockRequestAdapter.BaseUrl.Returns("https://api.procore.com");
         _mockTokenManager.GetAccessTokenAsync(Arg.Any<CancellationToken>())
-                        .Returns("test_access_token");
+                        .Returns(Task.FromResult<AccessToken?>(new AccessToken(
+                            "test_access_token",
+                            "Bearer",
+                            DateTimeOffset.UtcNow.AddHours(1))));
     }
 
     #region Wrapper-Generated Client Integration Tests
@@ -89,7 +93,8 @@ public class WrapperClientIntegrationTests
     {
         // Arrange
         var authenticationProvider = Substitute.For<IAuthenticationProvider>();
-        var authHandler = new ProcoreAuthHandler(_mockTokenManager);
+        var authHandlerLogger = Substitute.For<ILogger<ProcoreAuthHandler>>();
+        var authHandler = new ProcoreAuthHandler(_mockTokenManager, authHandlerLogger);
         var httpClient = new HttpClient(authHandler);
         
         var requestAdapter = Substitute.For<IRequestAdapter>();
@@ -158,15 +163,21 @@ public class WrapperClientIntegrationTests
     public async Task Authentication_Should_Work_With_Generated_Clients()
     {
         // Arrange
+        var authOptions = Options.Create(new ProcoreAuthOptions
+        {
+            ClientId = "test_client_id",
+            ClientSecret = "test_client_secret",
+            RedirectUri = "https://example.com/callback"
+        });
+        var httpClient = new HttpClient();
         var tokenManager = new TokenManager(
             Substitute.For<ITokenStorage>(),
-            "test_client_id",
-            "test_client_secret",
-            Substitute.For<IHttpClientFactory>(),
+            authOptions,
+            httpClient,
             Substitute.For<ILogger<TokenManager>>());
             
-        var authHandler = new ProcoreAuthHandler(tokenManager);
-        var httpClient = new HttpClient(authHandler);
+        var authHandler = new ProcoreAuthHandler(tokenManager, Substitute.For<ILogger<ProcoreAuthHandler>>());
+        var authenticatedHttpClient = new HttpClient(authHandler);
         
         // Create a real request adapter with the auth handler
         // Note: In a real test, you'd use actual Kiota request adapter
