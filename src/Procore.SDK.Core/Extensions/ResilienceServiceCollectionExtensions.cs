@@ -30,7 +30,7 @@ public static class ResilienceServiceCollectionExtensions
         IConfiguration configuration)
     {
         // Configure resilience options
-        services.Configure<ResilienceOptions>(configuration.GetSection(ResilienceOptions.SectionName));
+        services.Configure<ResilienceOptions>(options => configuration.GetSection(ResilienceOptions.SectionName).Bind(options));
         
         // Register core resilience services
         services.AddSingleton<PolicyFactory>();

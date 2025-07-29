@@ -93,5 +93,8 @@
     
     <!-- Source linking -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    
+    <!-- Package validation -->
+    <PackageVersion Include="Microsoft.DotNet.PackageValidation" Version="1.0.0-preview.7.21379.12" />
   </ItemGroup>
 </Project>

@@ -2,7 +2,10 @@
 
   <PropertyGroup>
     <PackageId>Procore.SDK.ResourceManagement</PackageId>
-    <Description>Procore SDK Resource Management client for workforce, resources, and assignments. Provides strongly-typed access to Procore's resource management API resources.</Description>
+    <Title>Procore SDK Resource Management Client</Title>
+    <Description>Procore SDK Resource Management client for workforce, resources, and assignments. Provides strongly-typed access to Procore's resource management API resources with scheduling and availability tracking.</Description>
+    <PackageTags>$(PackageTags);resource-management;workforce;resources;assignments;scheduling;availability</PackageTags>
+    <PackageReleaseNotes>Resource Management client with Resource APIs, workforce scheduling, assignment management, and resource availability tracking capabilities.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

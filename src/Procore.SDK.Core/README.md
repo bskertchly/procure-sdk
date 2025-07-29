@@ -1,6 +1,9 @@
-# Procore SDK Core - Enhanced Error Handling and Resilience
+# Procore SDK Core Client
 
-This module provides comprehensive error handling and resilience patterns for the Procore SDK, including structured logging, retry policies, circuit breakers, and correlation tracking.
+[![NuGet Version](https://img.shields.io/nuget/v/Procore.SDK.Core.svg)](https://www.nuget.org/packages/Procore.SDK.Core/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Procore.SDK.Core.svg)](https://www.nuget.org/packages/Procore.SDK.Core/)
+
+Core client for the Procore SDK, providing access to companies, users, documents, and configuration management through Procore's foundational API resources. This module also provides comprehensive error handling and resilience patterns including structured logging, retry policies, circuit breakers, and correlation tracking.
 
 ## Features
 
@@ -26,6 +29,12 @@ This module provides comprehensive error handling and resilience patterns for th
 - **Environment-Specific**: Different settings for development, staging, and production
 - **Runtime Adjustable**: Hot-reload configuration support
 - **Validation**: Built-in configuration validation with clear error messages
+
+### 🏢 API Coverage
+- **Companies API (V1.0)**: Full CRUD operations with search and filtering
+- **Users API (V1.1)**: Complete user management with role assignments
+- **Documents API (V1.0)**: File operations with metadata and permissions
+- **Custom Fields API (V2.0)**: Configuration management with validation
 
 ## Quick Start
 

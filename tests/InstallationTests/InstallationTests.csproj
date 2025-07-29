@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <PackageReference Include="FluentAssertions" />
+  </ItemGroup>
+
+  <!-- Reference the actual built packages, not project references -->
+  <ItemGroup>
+    <PackageReference Include="Procore.SDK" Version="1.0.0" />
+    <PackageReference Include="Procore.SDK.Core" Version="1.0.0" />
+    <PackageReference Include="Procore.SDK.Shared" Version="1.0.0" />
+  </ItemGroup>
+
+</Project>

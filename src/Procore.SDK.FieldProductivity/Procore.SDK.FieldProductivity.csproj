@@ -2,7 +2,10 @@
 
   <PropertyGroup>
     <PackageId>Procore.SDK.FieldProductivity</PackageId>
-    <Description>Procore SDK Field Productivity client for daily logs, timecards, equipment, and manpower tracking. Provides strongly-typed access to Procore's field productivity API resources.</Description>
+    <Title>Procore SDK Field Productivity Client</Title>
+    <Description>Procore SDK Field Productivity client for daily logs, timecards, equipment, and manpower tracking. Provides strongly-typed access to Procore's field productivity API resources with time precision and timezone handling.</Description>
+    <PackageTags>$(PackageTags);field-productivity;timecards;daily-logs;equipment;manpower;time-tracking</PackageTags>
+    <PackageReleaseNotes>Field Productivity client with Timecard Entry APIs, daily log management, equipment tracking, and manpower resource allocation with timezone-aware time handling.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

@@ -105,9 +105,12 @@ public static class ServiceCollectionExtensions
         params string[] scopes)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(clientSecret);
-        ArgumentException.ThrowIfNullOrWhiteSpace(redirectUri);
+        if (string.IsNullOrWhiteSpace(clientId))
+            throw new ArgumentException("Value cannot be null or whitespace.", nameof(clientId));
+        if (string.IsNullOrWhiteSpace(clientSecret))
+            throw new ArgumentException("Value cannot be null or whitespace.", nameof(clientSecret));
+        if (string.IsNullOrWhiteSpace(redirectUri))
+            throw new ArgumentException("Value cannot be null or whitespace.", nameof(redirectUri));
 
         // Configure authentication options directly
         services.Configure<ProcoreAuthOptions>(options =>
