@@ -51,7 +51,9 @@ public class TokenManagerTests
 
         // Assert
         result.Should().BeNull();
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockStorage.Received(1).GetTokenAsync("procore_token_test-client-id", Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
@@ -74,7 +76,9 @@ public class TokenManagerTests
 
         // Assert
         result.Should().Be(validToken);
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockStorage.Received(1).GetTokenAsync("procore_token_test-client-id", Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
@@ -120,7 +124,9 @@ public class TokenManagerTests
         result.Should().NotBeNull();
         result!.Token.Should().Be("refreshed-token");
         
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockStorage.Received(1).StoreTokenAsync(Arg.Any<string>(), Arg.Any<AccessToken>(), Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
@@ -209,7 +215,9 @@ public class TokenManagerTests
         eventNewToken.Should().Be(result);
         eventOldToken.Should().Be(currentToken);
 
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockStorage.Received(1).StoreTokenAsync("procore_token_test-client-id", result, Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
@@ -288,11 +296,13 @@ public class TokenManagerTests
         await _tokenManager.ClearTokenAsync();
 
         // Assert
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockStorage.Received(1).DeleteTokenAsync("procore_token_test-client-id", Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
-    public void TokenManager_ShouldUseClientIdInStorageKey()
+    public async Task TokenManager_ShouldUseClientIdInStorageKey()
     {
         // This test verifies that different client IDs result in different storage keys
         // Arrange
@@ -310,12 +320,14 @@ public class TokenManagerTests
         var token = new AccessToken("test-token", "Bearer", DateTimeOffset.UtcNow.AddHours(1));
 
         // Act
-        _ = tokenManager1.StoreTokenAsync(token);
-        _ = tokenManager2.StoreTokenAsync(token);
+        await tokenManager1.StoreTokenAsync(token);
+        await tokenManager2.StoreTokenAsync(token);
 
         // Assert
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockStorage.Received(1).StoreTokenAsync("procore_token_client-1", token, Arg.Any<CancellationToken>());
         _mockStorage.Received(1).StoreTokenAsync("procore_token_client-2", token, Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]

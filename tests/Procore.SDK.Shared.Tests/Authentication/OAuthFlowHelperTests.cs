@@ -27,7 +27,7 @@ public class OAuthFlowHelperTests
         {
             ClientId = "test-client-id",
             ClientSecret = "test-client-secret",
-            RedirectUri = "https://myapp.com/oauth/callback",
+            RedirectUri = new Uri("https://myapp.com/oauth/callback"),
             Scopes = new[] { "read", "write", "admin" },
             AuthorizationEndpoint = new Uri("https://app.procore.com/oauth/authorize"),
             TokenEndpoint = new Uri("https://api.procore.com/oauth/token")
@@ -63,7 +63,7 @@ public class OAuthFlowHelperTests
 
         query["response_type"].Should().Be("code", "Response type should be 'code' for authorization code flow");
         query["client_id"].Should().Be(_authOptions.ClientId, "Client ID should match configuration");
-        query["redirect_uri"].Should().Be(_authOptions.RedirectUri, "Redirect URI should match configuration");
+        query["redirect_uri"].Should().Be(_authOptions.RedirectUri.ToString(), "Redirect URI should match configuration");
         query["scope"].Should().Be("read write admin", "Scopes should be space-separated");
         query["code_challenge_method"].Should().Be("S256", "PKCE challenge method should be SHA256");
         query["code_challenge"].Should().NotBeNullOrEmpty("Code challenge should be present");
@@ -219,7 +219,7 @@ public class OAuthFlowHelperTests
         var formContent = await capturedRequest.Content!.ReadAsStringAsync();
         formContent.Should().Contain("grant_type=authorization_code");
         formContent.Should().Contain($"code={Uri.EscapeDataString(authCode)}");
-        formContent.Should().Contain($"redirect_uri={Uri.EscapeDataString(_authOptions.RedirectUri)}");
+        formContent.Should().Contain($"redirect_uri={Uri.EscapeDataString(_authOptions.RedirectUri.ToString())}");
         formContent.Should().Contain($"client_id={Uri.EscapeDataString(_authOptions.ClientId)}");
         formContent.Should().Contain($"client_secret={Uri.EscapeDataString(_authOptions.ClientSecret)}");
         formContent.Should().Contain($"code_verifier={Uri.EscapeDataString(codeVerifier)}");
@@ -357,7 +357,7 @@ public class OAuthFlowHelperTests
         var specialCharsOptions = new ProcoreAuthOptions
         {
             ClientId = "client+with spaces&special=chars",
-            RedirectUri = "https://example.com/callback?param=value&other=test",
+            RedirectUri = new Uri("https://example.com/callback?param=value&other=test"),
             Scopes = new[] { "read write", "admin:all" }
         };
 
@@ -373,7 +373,7 @@ public class OAuthFlowHelperTests
         var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
 
         query["client_id"].Should().Be(specialCharsOptions.ClientId, "Client ID should be properly decoded");
-        query["redirect_uri"].Should().Be(specialCharsOptions.RedirectUri, "Redirect URI should be properly decoded");
+        query["redirect_uri"].Should().Be(specialCharsOptions.RedirectUri.ToString(), "Redirect URI should be properly decoded");
         query["scope"].Should().Be("read write admin:all", "Scopes should be properly decoded");
     }
 
@@ -384,7 +384,7 @@ public class OAuthFlowHelperTests
         var emptyScopes = new ProcoreAuthOptions
         {
             ClientId = "test-client",
-            RedirectUri = "https://example.com/callback",
+            RedirectUri = new Uri("https://example.com/callback"),
             Scopes = Array.Empty<string>()
         };
 

@@ -69,8 +69,8 @@ public class AutomaticTokenRefreshTests
         _mockStorage.GetTokenAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
                    .Returns(nearExpiryToken, refreshedToken);
 
-        // Mock successful refresh response
-        var refreshResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        // Mock successful refresh response  
+        using var refreshResponse = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(JsonSerializer.Serialize(new
             {
