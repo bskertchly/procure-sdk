@@ -87,6 +87,7 @@
     
     <!-- Performance benchmarking -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
+    <PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
     
     <!-- Security and vulnerability scanning -->
     <PackageVersion Include="NuGetDefense" Version="2.2.0" />
