@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Disable central package management for validation tests -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>
