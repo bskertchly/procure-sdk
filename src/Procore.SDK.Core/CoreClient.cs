@@ -373,7 +373,7 @@ public class ProcoreCoreClient : ICoreClient
                 CreatedAt = userResponse.CreatedAt?.DateTime ?? DateTime.MinValue,
                 UpdatedAt = userResponse.UpdatedAt?.DateTime ?? DateTime.MinValue,
                 LastSignInAt = userResponse.LastLoginAt?.DateTime,
-                AvatarUrl = userResponse.Avatar
+                AvatarUrl = string.IsNullOrEmpty(userResponse.Avatar) ? null : new Uri(userResponse.Avatar)
             };
         }, "GetUserAsync", null, cancellationToken).ConfigureAwait(false);
     }
@@ -558,7 +558,7 @@ public class ProcoreCoreClient : ICoreClient
                 Id = fileResponse.Id ?? 0,
                 Name = fileResponse.Name ?? string.Empty,
                 FileName = fileResponse.Name ?? string.Empty,
-                FileUrl = string.Empty, // URL not available in folders response
+                FileUrl = null, // URL not available in folders response
                 ContentType = fileResponse.FileType ?? "application/octet-stream",
                 FileSize = fileResponse.Size ?? 0,
                 IsPrivate = fileResponse.Private ?? false,
@@ -638,7 +638,7 @@ public class ProcoreCoreClient : ICoreClient
                 IsPrivate = request.IsPrivate,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
-                FileUrl = $"https://api.procore.com/files/simulated/{request.Name}"
+                FileUrl = new Uri($"https://api.procore.com/files/simulated/{request.Name}")
             };
         }, "UploadDocumentAsync", null, cancellationToken).ConfigureAwait(false);
     }
@@ -1203,7 +1203,7 @@ public class ProcoreCoreClient : ICoreClient
                     Id = fileResponse.Id ?? 0,
                     Name = fileResponse.Name ?? string.Empty,
                     FileName = fileResponse.Name ?? string.Empty,
-                    FileUrl = string.Empty, // URL not available in folders response
+                    FileUrl = null, // URL not available in folders response
                     ContentType = fileResponse.FileType ?? "application/octet-stream",
                     FileSize = fileResponse.Size ?? 0,
                     IsPrivate = fileResponse.Private ?? false,

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Procore.SDK.ProjectManagement.Models;
 
 /// <summary>
-/// Domain models for ProjectManagement client
+/// Domain models for ProjectManagement client.
 /// </summary>
 
 // Core Project Models

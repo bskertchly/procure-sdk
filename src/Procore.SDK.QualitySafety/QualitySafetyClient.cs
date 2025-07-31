@@ -24,7 +24,6 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     private readonly Procore.SDK.QualitySafety.QualitySafetyClient _generatedClient;
     private readonly IRequestAdapter _requestAdapter;
     private readonly ILogger<ProcoreQualitySafetyClient>? _logger;
-    private readonly ErrorMapper? _errorMapper;
     private readonly StructuredLogger? _structuredLogger;
     private readonly ObservationTypeMapper _observationTypeMapper;
     private readonly ObservationGetResponseMapper _observationGetResponseMapper;
@@ -46,18 +45,15 @@ public class ProcoreQualitySafetyClient : IQualitySafetyClient
     /// </summary>
     /// <param name="requestAdapter">The request adapter to use for HTTP communication.</param>
     /// <param name="logger">Optional logger for diagnostic information.</param>
-    /// <param name="errorMapper">Optional error mapper for exception handling.</param>
     /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
     public ProcoreQualitySafetyClient(
         IRequestAdapter requestAdapter, 
         ILogger<ProcoreQualitySafetyClient>? logger = null,
-        ErrorMapper? errorMapper = null,
         StructuredLogger? structuredLogger = null)
     {
         _generatedClient = new Procore.SDK.QualitySafety.QualitySafetyClient(requestAdapter);
         _requestAdapter = requestAdapter ?? throw new ArgumentNullException(nameof(requestAdapter));
         _logger = logger;
-        _errorMapper = errorMapper;
         _structuredLogger = structuredLogger;
         _observationTypeMapper = new ObservationTypeMapper();
         _observationGetResponseMapper = new ObservationGetResponseMapper();

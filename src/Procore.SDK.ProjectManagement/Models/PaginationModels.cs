@@ -4,7 +4,7 @@ using System.Linq;
 namespace Procore.SDK.ProjectManagement.Models;
 
 /// <summary>
-/// Pagination models for ProjectManagement client operations
+/// Pagination models for ProjectManagement client operations.
 /// </summary>
 
 public class PaginationOptions

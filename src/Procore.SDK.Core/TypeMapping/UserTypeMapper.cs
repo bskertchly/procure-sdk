@@ -34,7 +34,7 @@ public class UserTypeMapper : BaseTypeMapper<User, GeneratedUser>
                 CreatedAt = MapDateTime(source.CreatedAt),
                 UpdatedAt = MapDateTime(source.UpdatedAt),
                 LastSignInAt = source.LastLoginAt?.DateTime,
-                AvatarUrl = source.Avatar,
+                AvatarUrl = string.IsNullOrEmpty(source.Avatar) ? null : new Uri(source.Avatar),
                 PhoneNumber = MapPhoneNumber(source.BusinessPhone, source.MobilePhone),
                 Company = MapVendorToCompany(source.Vendor),
                 CustomFields = ExtractCustomFields(source.AdditionalData)
@@ -72,7 +72,7 @@ public class UserTypeMapper : BaseTypeMapper<User, GeneratedUser>
                 CreatedAt = source.CreatedAt != DateTime.MinValue ? new DateTimeOffset(source.CreatedAt) : null,
                 UpdatedAt = source.UpdatedAt != DateTime.MinValue ? new DateTimeOffset(source.UpdatedAt) : null,
                 LastLoginAt = source.LastSignInAt.HasValue ? new DateTimeOffset(source.LastSignInAt.Value) : null,
-                Avatar = source.AvatarUrl,
+                Avatar = source.AvatarUrl?.ToString(),
                 BusinessPhone = source.PhoneNumber, // Primary phone mapping
                 MobilePhone = null, // Would need additional field in domain model to separate
                 Vendor = MapCompanyToVendor(source.Company),

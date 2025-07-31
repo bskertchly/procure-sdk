@@ -1,0 +1,11 @@
+=== BUILD WARNINGS ANALYSIS ===
+
+## C# Compiler Warnings (CS)
+ 328 CS1591
+  40 CS1570
+   8 CS1587
+
+## StyleCop Analyzer Warnings (SA)
+
+## SonarAnalyzer Warnings (S)
+

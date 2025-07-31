@@ -28,7 +28,7 @@ public class DocumentTypeMapper : BaseTypeMapper<Document, GeneratedFile>
                 Name = source.Name ?? string.Empty,
                 FileName = source.Name ?? string.Empty, // Use Name as FileName since they're equivalent
                 Description = source.Description,
-                FileUrl = string.Empty, // Direct download URL not available in standard Files response
+                FileUrl = null, // Direct download URL not available in standard Files response
                 ContentType = source.FileType ?? "application/octet-stream",
                 FileSize = source.Size ?? 0,
                 IsPrivate = source.Private ?? false,

@@ -46,7 +46,7 @@ public class OAuthFlowHelper
         {
             ["response_type"] = "code",
             ["client_id"] = _options.ClientId,
-            ["redirect_uri"] = _options.RedirectUri,
+            ["redirect_uri"] = _options.RedirectUri?.ToString() ?? string.Empty,
             ["scope"] = string.Join(" ", _options.Scopes),
             ["code_challenge"] = codeChallenge,
             ["code_challenge_method"] = "S256"
@@ -88,7 +88,7 @@ public class OAuthFlowHelper
             {
                 new KeyValuePair<string, string>("grant_type", "authorization_code"),
                 new KeyValuePair<string, string>("code", code),
-                new KeyValuePair<string, string>("redirect_uri", _options.RedirectUri),
+                new KeyValuePair<string, string>("redirect_uri", _options.RedirectUri?.ToString() ?? string.Empty),
                 new KeyValuePair<string, string>("client_id", _options.ClientId),
                 new KeyValuePair<string, string>("client_secret", _options.ClientSecret),
                 new KeyValuePair<string, string>("code_verifier", codeVerifier),

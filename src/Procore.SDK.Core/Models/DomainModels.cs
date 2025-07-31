@@ -42,7 +42,7 @@ public class Company
     /// <summary>
     /// Gets or sets the URL of the company's logo.
     /// </summary>
-    public string? LogoUrl { get; set; }
+    public Uri? LogoUrl { get; set; }
 
     /// <summary>
     /// Gets or sets the company's address information.
@@ -108,7 +108,7 @@ public class User
     /// <summary>
     /// Gets or sets the URL of the user's avatar image.
     /// </summary>
-    public string? AvatarUrl { get; set; }
+    public Uri? AvatarUrl { get; set; }
 
     /// <summary>
     /// Gets or sets the phone number of the user.
@@ -154,7 +154,7 @@ public class Document
     /// <summary>
     /// Gets or sets the URL where the document file can be accessed.
     /// </summary>
-    public string FileUrl { get; set; } = string.Empty;
+    public Uri? FileUrl { get; set; }
 
     /// <summary>
     /// Gets or sets the size of the document file in bytes.
