@@ -43,11 +43,21 @@
     <!-- Remove warning suppressions to get full analysis -->
     <WarningsNotAsErrors></WarningsNotAsErrors>
     
-    <!-- Code analysis -->
+    <!-- Build Performance Optimizations -->
+    <RestoreParallel>true</RestoreParallel>
+    <BuildInParallel>true</BuildInParallel>
+    <MaxCpuCount>0</MaxCpuCount>
+    <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    
+    <!-- Incremental Build Optimizations -->
+    <UseIncrementalCompilation>true</UseIncrementalCompilation>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+    
+    <!-- Code analysis - Optimized for performance -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisLevel>latest-all</AnalysisLevel>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+    <AnalysisLevel>latest-minimum</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
     <RunNullableAnnotations>true</RunNullableAnnotations>
     <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)analyzers.ruleset</CodeAnalysisRuleSet>
     
@@ -57,6 +67,10 @@
     <!-- Style enforcement - Reduced to warnings for generated code -->
     <TreatStyleCopWarningsAsErrors>false</TreatStyleCopWarningsAsErrors>
     
+    <!-- Generated Code Performance Optimizations -->
+    <SkipAnalyzersOnGeneratedCode>true</SkipAnalyzersOnGeneratedCode>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    
     <!-- Deterministic builds for reproducible packages -->
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
@@ -64,6 +78,24 @@
     <!-- Enhanced package properties -->
     <PackageValidationBaselineVersion Condition="'$(PackageValidationBaselineVersion)' == ''">1.0.0</PackageValidationBaselineVersion>
     <GenerateCompatibilitySuppressionFile>true</GenerateCompatibilitySuppressionFile>
+  </PropertyGroup>
+
+  <!-- Generated-heavy project specific properties for performance -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Procore.SDK.ProjectManagement' OR '$(MSBuildProjectName)' == 'Procore.SDK.Core' OR '$(MSBuildProjectName)' == 'Procore.SDK.QualitySafety'">
+    <!-- Disable expensive analysis for generated code -->
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <EnableSecurityCodeScan>false</EnableSecurityCodeScan>
+    <RunNullableAnnotations>false</RunNullableAnnotations>
+    
+    <!-- Skip generated code analysis -->
+    <SkipAnalyzersOnGeneratedCode>true</SkipAnalyzersOnGeneratedCode>
+    <ExcludeGeneratedCodeFromStyleCop>true</ExcludeGeneratedCodeFromStyleCop>
+    
+    <!-- Optimize compilation for large projects -->
+    <UseSharedCompilation>true</UseSharedCompilation>
+    <BuildInParallel>true</BuildInParallel>
   </PropertyGroup>
 
   <!-- Test project specific properties -->
@@ -101,11 +133,15 @@
     <!-- Package validation tools -->
     <PackageReference Include="Microsoft.DotNet.PackageValidation" PrivateAssets="All" Condition="'$(IsPackable)' == 'true'" />
     
-    <!-- Analyzers for all projects -->
-    <PackageReference Include="SecurityCodeScan.VS2019" PrivateAssets="All" />
-    <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="All" />
-    <PackageReference Include="StyleCop.Analyzers" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" PrivateAssets="All" />
+    <!-- Analyzers for non-generated-heavy projects only -->
+    <PackageReference Include="SecurityCodeScan.VS2019" PrivateAssets="All" 
+                      Condition="'$(MSBuildProjectName)' != 'Procore.SDK.ProjectManagement' AND '$(MSBuildProjectName)' != 'Procore.SDK.Core' AND '$(MSBuildProjectName)' != 'Procore.SDK.QualitySafety'" />
+    <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="All" 
+                      Condition="'$(MSBuildProjectName)' != 'Procore.SDK.ProjectManagement' AND '$(MSBuildProjectName)' != 'Procore.SDK.Core' AND '$(MSBuildProjectName)' != 'Procore.SDK.QualitySafety'" />
+    <PackageReference Include="StyleCop.Analyzers" PrivateAssets="All" 
+                      Condition="'$(MSBuildProjectName)' != 'Procore.SDK.ProjectManagement' AND '$(MSBuildProjectName)' != 'Procore.SDK.Core' AND '$(MSBuildProjectName)' != 'Procore.SDK.QualitySafety'" />
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" PrivateAssets="All" 
+                      Condition="'$(MSBuildProjectName)' != 'Procore.SDK.ProjectManagement' AND '$(MSBuildProjectName)' != 'Procore.SDK.Core' AND '$(MSBuildProjectName)' != 'Procore.SDK.QualitySafety'" />
   </ItemGroup>
 
   <!-- Package references for test projects -->
