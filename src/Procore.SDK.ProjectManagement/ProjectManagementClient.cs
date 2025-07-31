@@ -26,7 +26,6 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     private readonly Procore.SDK.ProjectManagement.ProjectManagementClient _generatedClient;
     private readonly IRequestAdapter _requestAdapter;
     private readonly ILogger<ProcoreProjectManagementClient>? _logger;
-    private readonly ErrorMapper? _errorMapper;
     private readonly StructuredLogger? _structuredLogger;
     private readonly ITypeMapper<Project, GeneratedProject>? _projectMapper;
     private bool _disposed;
@@ -41,20 +40,17 @@ public class ProcoreProjectManagementClient : ProjectModels.IProjectManagementCl
     /// </summary>
     /// <param name="requestAdapter">The request adapter to use for HTTP communication.</param>
     /// <param name="logger">Optional logger for diagnostic information.</param>
-    /// <param name="errorMapper">Optional error mapper for exception handling.</param>
     /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
     /// <param name="projectMapper">Optional type mapper for Project conversions.</param>
     public ProcoreProjectManagementClient(
         IRequestAdapter requestAdapter, 
         ILogger<ProcoreProjectManagementClient>? logger = null,
-        ErrorMapper? errorMapper = null,
         StructuredLogger? structuredLogger = null,
         ITypeMapper<Project, GeneratedProject>? projectMapper = null)
     {
         _generatedClient = new Procore.SDK.ProjectManagement.ProjectManagementClient(requestAdapter);
         _requestAdapter = requestAdapter;
         _logger = logger;
-        _errorMapper = errorMapper;
         _structuredLogger = structuredLogger;
         _projectMapper = projectMapper ?? new ProjectTypeMapper();
     }

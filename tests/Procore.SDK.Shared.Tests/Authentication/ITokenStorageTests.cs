@@ -304,7 +304,7 @@ public class FileTokenStorageTests : IDisposable
     public void FileTokenStorage_ShouldImplementITokenStorage()
     {
         // Arrange & Act
-        var storage = new FileTokenStorage("test-path");
+        using var storage = new FileTokenStorage("test-path");
 
         // Assert
         storage.Should().BeAssignableTo<ITokenStorage>();
@@ -315,7 +315,7 @@ public class FileTokenStorageTests : IDisposable
     {
         // Arrange
         var nonExistentPath = Path.Combine(Path.GetTempPath(), "non-existent-file.json");
-        var storage = new FileTokenStorage(nonExistentPath);
+        using var storage = new FileTokenStorage(nonExistentPath);
         var key = "test-key";
 
         // Act

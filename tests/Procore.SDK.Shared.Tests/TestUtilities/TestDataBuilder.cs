@@ -136,7 +136,7 @@ public class ProcoreAuthOptionsBuilder
     private string _clientId = "test-client-id";
     private string _clientSecret = "test-client-secret";
     private Uri _tokenEndpoint = new("https://api.procore.com/oauth/token");
-    private string _redirectUri = "http://localhost:8080/callback";
+    private Uri _redirectUri = new("http://localhost:8080/callback");
     private string[] _scopes = new[] { "read", "write" };
     private TimeSpan _tokenRefreshMargin = TimeSpan.FromMinutes(5);
 
@@ -180,7 +180,7 @@ public class ProcoreAuthOptionsBuilder
     /// <returns>Builder instance</returns>
     public ProcoreAuthOptionsBuilder WithRedirectUri(string redirectUri)
     {
-        _redirectUri = redirectUri;
+        _redirectUri = new Uri(redirectUri);
         return this;
     }
 

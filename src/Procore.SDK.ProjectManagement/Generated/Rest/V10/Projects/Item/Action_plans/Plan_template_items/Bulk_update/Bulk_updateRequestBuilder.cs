@@ -43,7 +43,7 @@ namespace Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Action_plans.Plan
         /// <exception cref="global::Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Action_plans.Plan_template_items.Bulk_update.Bulk_update401Error">When receiving a 401 status code</exception>
         /// <exception cref="global::Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Action_plans.Plan_template_items.Bulk_update.Bulk_update403Error">When receiving a 403 status code</exception>
         /// <exception cref="global::Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Action_plans.Plan_template_items.Bulk_update.Bulk_update404Error">When receiving a 404 status code</exception>
-        /// <exception cref="List<global::Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Action_plans.Plan_template_items.Bulk_update.Bulk_update>">When receiving a 422 status code</exception>
+        /// <exception cref="System.Collections.Generic.List{T}">When receiving a 422 status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<UntypedNode?> PatchAsync(global::Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Action_plans.Plan_template_items.Bulk_update.Bulk_updatePatchRequestBody body, Action<RequestConfiguration<global::Procore.SDK.ProjectManagement.Rest.V10.Projects.Item.Action_plans.Plan_template_items.Bulk_update.Bulk_updateRequestBuilder.Bulk_updateRequestBuilderPatchQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)

@@ -92,7 +92,9 @@ public class ProcoreAuthHandlerTests
 
         // Assert
         response.Should().Be(expectedResponse);
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockTokenManager.Received(1).GetAccessTokenAsync(Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
@@ -116,7 +118,9 @@ public class ProcoreAuthHandlerTests
 
         // Assert
         response.Should().Be(expectedResponse);
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockTokenManager.Received(1).GetAccessTokenAsync(Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
@@ -145,7 +149,9 @@ public class ProcoreAuthHandlerTests
 
         // Assert
         response.Should().Be(expectedResponse);
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockTokenManager.DidNotReceive().GetAccessTokenAsync(Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
@@ -175,7 +181,9 @@ public class ProcoreAuthHandlerTests
 
         // Assert
         response.Should().Be(successResponse);
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockTokenManager.Received(1).RefreshTokenAsync(Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
         
         // Note: Logging assertion commented out - would need a test logging framework
         // _mockLogger.Collector.GetSnapshot().Should().Contain(log => 
@@ -204,7 +212,9 @@ public class ProcoreAuthHandlerTests
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockTokenManager.Received(1).RefreshTokenAsync(Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
         
         // Note: Logging assertion commented out - would need a test logging framework
         // _mockLogger.Collector.GetSnapshot().Should().Contain(log => 
@@ -231,7 +241,9 @@ public class ProcoreAuthHandlerTests
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockTokenManager.DidNotReceive().RefreshTokenAsync(Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]
@@ -340,7 +352,9 @@ public class ProcoreAuthHandlerTests
         responses[1].StatusCode.Should().Be(HttpStatusCode.OK);
         
         // Refresh should be called at least once, but due to semaphore, might be called twice
+#pragma warning disable CS4014 // Because this call is not awaited
         _mockTokenManager.Received().RefreshTokenAsync(Arg.Any<CancellationToken>());
+#pragma warning restore CS4014
     }
 
     [Fact]

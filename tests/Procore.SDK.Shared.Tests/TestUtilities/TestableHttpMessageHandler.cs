@@ -36,7 +36,9 @@ public class TestableHttpMessageHandler : HttpMessageHandler
     /// <param name="contentType">Content type header</param>
     public void SetupResponse(HttpStatusCode statusCode, string content = "", string contentType = "application/json")
     {
+#pragma warning disable CA2000 // Dispose objects before losing scope - Caller takes ownership
         var response = new HttpResponseMessage(statusCode);
+#pragma warning restore CA2000
         if (!string.IsNullOrEmpty(content))
         {
             response.Content = new StringContent(content, Encoding.UTF8, contentType);
@@ -75,7 +77,9 @@ public class TestableHttpMessageHandler : HttpMessageHandler
     /// <param name="headers">Custom headers to add</param>
     public void SetupResponseWithHeaders(HttpStatusCode statusCode, string content, Dictionary<string, string> headers)
     {
+#pragma warning disable CA2000 // Dispose objects before losing scope - Caller takes ownership
         var response = new HttpResponseMessage(statusCode)
+#pragma warning restore CA2000
         {
             Content = new StringContent(content, Encoding.UTF8, "application/json")
         };
@@ -100,7 +104,12 @@ public class TestableHttpMessageHandler : HttpMessageHandler
     /// </summary>
     public void Reset()
     {
-        _responses.Clear();
+        // Dispose any queued responses to prevent resource leaks
+        while (_responses.Count > 0)
+        {
+            _responses.Dequeue().Dispose();
+        }
+        
         _requests.Clear();
         _responseSequence.Clear();
         SendAsyncFunc = null;
@@ -152,10 +161,12 @@ public class TestableHttpMessageHandler : HttpMessageHandler
         }
 
         // Default response
+#pragma warning disable CA2000 // Dispose objects before losing scope - Caller takes ownership
         return new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("{}", Encoding.UTF8, "application/json")
         };
+#pragma warning restore CA2000
     }
 
     protected override void Dispose(bool disposing)

@@ -61,7 +61,7 @@ public class ProcoreAuthOptionsTests
     {
         // Arrange
         var options = new ProcoreAuthOptions();
-        var redirectUri = "https://myapp.com/oauth/callback";
+        var redirectUri = new Uri("https://myapp.com/oauth/callback");
 
         // Act
         options.RedirectUri = redirectUri;
@@ -151,7 +151,7 @@ public class ProcoreAuthOptionsTests
         // Act & Assert (should not throw)
         options.ClientId = "test";
         options.ClientSecret = "secret";
-        options.RedirectUri = "https://example.com";
+        options.RedirectUri = new Uri("https://example.com");
         options.Scopes = new[] { "read" };
         options.AuthorizationEndpoint = new Uri("https://auth.example.com");
         options.TokenEndpoint = new Uri("https://token.example.com");
@@ -210,7 +210,7 @@ public class ProcoreAuthOptionsTests
         // Act & Assert (should not throw)
         options.ClientId = value ?? string.Empty;
         options.ClientSecret = value ?? string.Empty;
-        options.RedirectUri = value ?? string.Empty;
+        options.RedirectUri = string.IsNullOrEmpty(value) ? null : new Uri(value);
     }
 
     [Fact]

@@ -28,7 +28,6 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     private readonly Procore.SDK.FieldProductivity.FieldProductivityClient _generatedClient;
     private readonly IRequestAdapter _requestAdapter;
     private readonly ILogger<ProcoreFieldProductivityClient>? _logger;
-    private readonly ErrorMapper? _errorMapper;
     private readonly StructuredLogger? _structuredLogger;
     private readonly TimecardEntryTypeMapper _timecardMapper;
     private bool _disposed;
@@ -43,18 +42,15 @@ public class ProcoreFieldProductivityClient : IFieldProductivityClient
     /// </summary>
     /// <param name="requestAdapter">The request adapter to use for HTTP communication.</param>
     /// <param name="logger">Optional logger for diagnostic information.</param>
-    /// <param name="errorMapper">Optional error mapper for exception handling.</param>
     /// <param name="structuredLogger">Optional structured logger for correlation tracking.</param>
     public ProcoreFieldProductivityClient(
         IRequestAdapter requestAdapter, 
         ILogger<ProcoreFieldProductivityClient>? logger = null,
-        ErrorMapper? errorMapper = null,
         StructuredLogger? structuredLogger = null)
     {
         _generatedClient = new Procore.SDK.FieldProductivity.FieldProductivityClient(requestAdapter);
         _requestAdapter = requestAdapter ?? throw new ArgumentNullException(nameof(requestAdapter));
         _logger = logger;
-        _errorMapper = errorMapper;
         _structuredLogger = structuredLogger;
         _timecardMapper = new TimecardEntryTypeMapper();
     }

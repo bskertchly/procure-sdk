@@ -18,6 +18,17 @@ using System.Threading.Tasks;
 namespace Procore.SDK.Extensions;
 
 /// <summary>
+/// Constants used by the Procore SDK configuration.
+/// </summary>
+internal static class ProcoreApiConstants
+{
+    /// <summary>
+    /// The default base address for the Procore API.
+    /// </summary>
+    internal const string DefaultBaseAddress = "https://api.procore.com";
+}
+
+/// <summary>
 /// Extensions for configuring Procore SDK services in the dependency injection container
 /// </summary>
 public static class ServiceCollectionExtensions
@@ -52,7 +63,7 @@ public static class ServiceCollectionExtensions
         // Configure HTTP client options
         services.Configure<HttpClientOptions>(options =>
         {
-            options.BaseAddress = new Uri("https://api.procore.com");
+            options.BaseAddress = new Uri(ProcoreApiConstants.DefaultBaseAddress);
             options.Timeout = TimeSpan.FromMinutes(1);
             options.MaxConnectionsPerServer = 10;
             options.PooledConnectionLifetime = TimeSpan.FromMinutes(15);
@@ -117,14 +128,14 @@ public static class ServiceCollectionExtensions
         {
             options.ClientId = clientId;
             options.ClientSecret = clientSecret;
-            options.RedirectUri = redirectUri;
+            options.RedirectUri = new Uri(redirectUri);
             options.Scopes = scopes ?? Array.Empty<string>();
         });
 
         // Configure default HTTP options
         services.Configure<HttpClientOptions>(options =>
         {
-            options.BaseAddress = new Uri("https://api.procore.com");
+            options.BaseAddress = new Uri(ProcoreApiConstants.DefaultBaseAddress);
             options.Timeout = TimeSpan.FromMinutes(1);
             options.MaxConnectionsPerServer = 10;
             options.PooledConnectionLifetime = TimeSpan.FromMinutes(15);

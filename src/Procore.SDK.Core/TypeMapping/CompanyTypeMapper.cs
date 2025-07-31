@@ -28,7 +28,7 @@ public class CompanyTypeMapper : BaseTypeMapper<Company, GeneratedCompany>
                 Name = source.Name ?? string.Empty,
                 Description = null, // Not available in V1.0 Companies API
                 IsActive = source.IsActive ?? false,
-                LogoUrl = source.LogoUrl,
+                LogoUrl = string.IsNullOrEmpty(source.LogoUrl) ? null : new Uri(source.LogoUrl),
                 CreatedAt = DateTime.MinValue, // Not available in V1.0 Companies API
                 UpdatedAt = DateTime.MinValue, // Not available in V1.0 Companies API
                 Address = null, // Not available in V1.0 Companies API
@@ -64,7 +64,7 @@ public class CompanyTypeMapper : BaseTypeMapper<Company, GeneratedCompany>
                 Id = source.Id != 0 ? source.Id : null,
                 Name = source.Name,
                 IsActive = source.IsActive,
-                LogoUrl = source.LogoUrl,
+                LogoUrl = source.LogoUrl?.ToString(),
                 MyCompany = null, // This is a read-only computed field
                 PcnBusinessExperience = null, // This is a system configuration field
                 AdditionalData = source.CustomFields?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, object>()

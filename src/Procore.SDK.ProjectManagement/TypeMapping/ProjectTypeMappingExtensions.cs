@@ -12,9 +12,9 @@ public static class ProjectTypeMappingExtensions
     /// <summary>
     /// Maps a generated GetResponse to a wrapper Project domain model.
     /// </summary>
-    /// <param name="source">The generated GetResponse to map from</param>
-    /// <param name="mapper">The type mapper to use</param>
-    /// <returns>The mapped Project domain model</returns>
+    /// <param name="source">The generated GetResponse to map from.</param>
+    /// <param name="mapper">The type mapper to use.</param>
+    /// <returns>The mapped Project domain model.</returns>
     public static Project ToProject(this GeneratedProject source, ITypeMapper<Project, GeneratedProject> mapper)
     {
         return mapper.MapToWrapper(source);
@@ -23,9 +23,9 @@ public static class ProjectTypeMappingExtensions
     /// <summary>
     /// Maps a wrapper Project domain model to a generated GetResponse.
     /// </summary>
-    /// <param name="source">The Project domain model to map from</param>
-    /// <param name="mapper">The type mapper to use</param>
-    /// <returns>The mapped GetResponse</returns>
+    /// <param name="source">The Project domain model to map from.</param>
+    /// <param name="mapper">The type mapper to use.</param>
+    /// <returns>The mapped GetResponse.</returns>
     public static GeneratedProject ToGetResponse(this Project source, ITypeMapper<Project, GeneratedProject> mapper)
     {
         return mapper.MapToGenerated(source);

@@ -23,13 +23,13 @@ public class AuthenticationBenchmarks
     public void Setup()
     {
         var services = new ServiceCollection();
-        
+
         // Configure authentication options
         services.Configure<ProcoreAuthOptions>(options =>
         {
             options.ClientId = "test-client-id";
             options.ClientSecret = "test-client-secret";
-            options.RedirectUri = "http://localhost:8080/callback";
+            options.RedirectUri = new Uri("http://localhost:8080/callback");
             options.Scopes = ["read", "write"];
             options.AuthorizationEndpoint = new Uri("https://app.procore.com/oauth/authorize");
             options.TokenEndpoint = new Uri("https://app.procore.com/oauth/token");
@@ -104,13 +104,13 @@ public class AuthenticationBenchmarks
     {
         // Store token
         await _tokenManager.StoreTokenAsync(_testToken);
-        
+
         // Get token
         var token = await _tokenManager.GetAccessTokenAsync();
-        
+
         // Clear token
         await _tokenManager.ClearTokenAsync();
-        
+
         GC.KeepAlive(token);
     }
 
@@ -126,11 +126,11 @@ public class AuthenticationBenchmarks
             var key = $"test-key-{i}";
             var token = new AccessToken(
                 $"token-{i}",
-                "Bearer", 
+                "Bearer",
                 DateTimeOffset.UtcNow.AddHours(1),
                 $"refresh-{i}",
                 ["read"]);
-            
+
             await _tokenStorage.StoreTokenAsync(key, token);
             var retrieved = await _tokenStorage.GetTokenAsync(key);
             await _tokenStorage.DeleteTokenAsync(key);

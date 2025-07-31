@@ -13,7 +13,7 @@ namespace Procore.SDK.Core.ErrorHandling;
 /// Maps HTTP exceptions to domain-specific exceptions.
 /// This class transforms HTTP errors into meaningful domain exceptions.
 /// </summary>
-public class ErrorMapper
+public static class ErrorMapper
 {
     /// <summary>
     /// Maps an HttpRequestException to a domain-specific ProcoreCoreException.

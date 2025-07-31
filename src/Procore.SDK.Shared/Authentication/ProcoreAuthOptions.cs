@@ -20,12 +20,12 @@ public class ProcoreAuthOptions
     /// <summary>
     /// Redirect URI registered with Procore for OAuth callbacks
     /// </summary>
-    public string RedirectUri { get; set; } = string.Empty;
+    public Uri? RedirectUri { get; set; }
 
     /// <summary>
     /// OAuth 2.0 scopes to request access for
     /// </summary>
-    public string[] Scopes { get; set; } = Array.Empty<string>();
+    public IReadOnlyCollection<string> Scopes { get; set; } = Array.Empty<string>();
 
     /// <summary>
     /// Procore OAuth 2.0 authorization endpoint

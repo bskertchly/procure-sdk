@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Procore.SDK.ProjectManagement.Models;
 
 /// <summary>
-/// Request models for ProjectManagement client operations
+/// Request models for ProjectManagement client operations.
 /// </summary>
 
 // Project Request Models

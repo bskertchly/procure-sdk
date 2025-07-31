@@ -35,7 +35,6 @@ public static class ResilienceServiceCollectionExtensions
         // Register core resilience services
         services.AddSingleton<PolicyFactory>();
         services.AddTransient<ProcoreResilienceHandler>();
-        services.AddTransient<ErrorMapper>();
         services.AddSingleton<StructuredLogger>();
 
         // Add logging configuration
@@ -59,7 +58,6 @@ public static class ResilienceServiceCollectionExtensions
         // Register core resilience services
         services.AddSingleton<PolicyFactory>();
         services.AddTransient<ProcoreResilienceHandler>();
-        services.AddTransient<ErrorMapper>();
         services.AddSingleton<StructuredLogger>();
 
         return services;
